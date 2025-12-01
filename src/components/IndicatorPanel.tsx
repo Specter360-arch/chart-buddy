@@ -8,12 +8,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { IndicatorSettings, IndicatorParameters } from "./IndicatorSettings";
 
 export type IndicatorType = "volume" | "rsi" | "macd" | "bollinger";
 
 interface IndicatorPanelProps {
   activeIndicators: IndicatorType[];
   onToggleIndicator: (indicator: IndicatorType) => void;
+  indicatorParameters: IndicatorParameters;
+  onParametersChange: (params: IndicatorParameters) => void;
 }
 
 const indicators: { id: IndicatorType; name: string; description: string }[] = [
@@ -39,24 +42,41 @@ const indicators: { id: IndicatorType; name: string; description: string }[] = [
   },
 ];
 
-export const IndicatorPanel = ({ activeIndicators, onToggleIndicator }: IndicatorPanelProps) => {
+export const IndicatorPanel = ({ 
+  activeIndicators, 
+  onToggleIndicator,
+  indicatorParameters,
+  onParametersChange 
+}: IndicatorPanelProps) => {
   return (
     <div className="flex items-center gap-2">
       {/* Active indicators chips */}
       <div className="flex gap-1">
         {activeIndicators.map((id) => {
           const indicator = indicators.find((i) => i.id === id);
+          const hasSettings = id === "rsi" || id === "macd" || id === "bollinger";
+          
           return (
-            <Button
-              key={id}
-              variant="secondary"
-              size="sm"
-              className="h-7 px-2 text-xs gap-1"
-              onClick={() => onToggleIndicator(id)}
-            >
-              {indicator?.name}
-              <X className="h-3 w-3" />
-            </Button>
+            <div key={id} className="flex items-center gap-0.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-7 px-2 text-xs gap-1 rounded-r-none"
+                onClick={() => onToggleIndicator(id)}
+              >
+                {indicator?.name}
+                <X className="h-3 w-3" />
+              </Button>
+              {hasSettings && (
+                <div className="bg-secondary border-l border-border h-7 flex items-center px-1 rounded-r">
+                  <IndicatorSettings
+                    indicatorType={id as "rsi" | "macd" | "bollinger"}
+                    parameters={indicatorParameters}
+                    onSave={onParametersChange}
+                  />
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -69,7 +89,7 @@ export const IndicatorPanel = ({ activeIndicators, onToggleIndicator }: Indicato
             <span className="text-xs">Indicators</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
+        <PopoverContent className="w-80 bg-card border-border z-50" align="start">
           <div className="space-y-4">
             <div>
               <h4 className="font-medium mb-2">Technical Indicators</h4>

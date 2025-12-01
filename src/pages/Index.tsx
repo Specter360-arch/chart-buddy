@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { TradingChart } from "@/components/TradingChart";
 import { MarketStats } from "@/components/MarketStats";
 import { IndicatorPanel, IndicatorType } from "@/components/IndicatorPanel";
+import { IndicatorParameters } from "@/components/IndicatorSettings";
 import { generateCandlestickData, generateVolumeData, getMarketStats } from "@/utils/chartData";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
 import { CandlestickData, Time } from "lightweight-charts";
@@ -14,6 +15,11 @@ const Index = () => {
   const [chartData, setChartData] = useState<CandlestickData<Time>[]>([]);
   const [volumeData, setVolumeData] = useState<{ time: Time; value: number; color: string }[]>([]);
   const [activeIndicators, setActiveIndicators] = useState<IndicatorType[]>(["volume"]);
+  const [indicatorParameters, setIndicatorParameters] = useState<IndicatorParameters>({
+    rsi: { period: 14 },
+    macd: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+    bollinger: { period: 20, stdDev: 2 },
+  });
 
   useEffect(() => {
     // Generate data based on selected symbol
@@ -34,18 +40,31 @@ const Index = () => {
 
   const stats = getMarketStats(chartData);
 
-  // Calculate indicators based on active indicators
+  // Calculate indicators based on active indicators and their parameters
   const indicators = useMemo(() => {
     if (chartData.length === 0) return {};
 
     return {
-      rsi: activeIndicators.includes("rsi") ? calculateRSI(chartData) : undefined,
-      macd: activeIndicators.includes("macd") ? calculateMACD(chartData) : undefined,
+      rsi: activeIndicators.includes("rsi")
+        ? calculateRSI(chartData, indicatorParameters.rsi.period)
+        : undefined,
+      macd: activeIndicators.includes("macd")
+        ? calculateMACD(
+            chartData,
+            indicatorParameters.macd.fastPeriod,
+            indicatorParameters.macd.slowPeriod,
+            indicatorParameters.macd.signalPeriod
+          )
+        : undefined,
       bollinger: activeIndicators.includes("bollinger")
-        ? calculateBollingerBands(chartData)
+        ? calculateBollingerBands(
+            chartData,
+            indicatorParameters.bollinger.period,
+            indicatorParameters.bollinger.stdDev
+          )
         : undefined,
     };
-  }, [chartData, activeIndicators]);
+  }, [chartData, activeIndicators, indicatorParameters]);
 
   const handleToggleIndicator = (indicator: IndicatorType) => {
     setActiveIndicators((prev) =>
@@ -81,6 +100,8 @@ const Index = () => {
           <IndicatorPanel
             activeIndicators={activeIndicators}
             onToggleIndicator={handleToggleIndicator}
+            indicatorParameters={indicatorParameters}
+            onParametersChange={setIndicatorParameters}
           />
         </div>
 
