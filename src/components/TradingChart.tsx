@@ -14,13 +14,32 @@ interface TradingChartProps {
   data: CandlestickData<Time>[];
   volumeData?: { time: Time; value: number; color?: string }[];
   chartType?: "candlestick" | "line";
+  showVolume?: boolean;
+  rsiData?: { time: Time; value: number }[];
+  macdData?: {
+    macd: { time: Time; value: number }[];
+    signal: { time: Time; value: number }[];
+    histogram: { time: Time; value: number; color: string }[];
+  };
+  bollingerData?: {
+    upper: { time: Time; value: number }[];
+    middle: { time: Time; value: number }[];
+    lower: { time: Time; value: number }[];
+  };
 }
 
-export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: TradingChartProps) => {
+export const TradingChart = ({ 
+  data, 
+  volumeData, 
+  chartType = "candlestick",
+  showVolume = false,
+  rsiData,
+  macdData,
+  bollingerData
+}: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<"Candlestick" | "Line"> | null>(null);
-  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const seriesRefs = useRef<Map<string, ISeriesApi<any>>>(new Map());
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -50,6 +69,7 @@ export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: Tr
     });
 
     chartRef.current = chart;
+    seriesRefs.current.clear();
 
     // Add main series
     if (chartType === "candlestick") {
@@ -61,7 +81,7 @@ export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: Tr
         wickDownColor: "hsl(0, 72%, 51%)",
       });
       candlestickSeries.setData(data);
-      seriesRef.current = candlestickSeries as any;
+      seriesRefs.current.set("main", candlestickSeries);
     } else {
       const lineSeries = chart.addSeries(LineSeries, {
         color: "hsl(180, 85%, 55%)",
@@ -72,11 +92,37 @@ export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: Tr
         value: d.close,
       }));
       lineSeries.setData(lineData);
-      seriesRef.current = lineSeries as any;
+      seriesRefs.current.set("main", lineSeries);
     }
 
-    // Add volume series if provided
-    if (volumeData && volumeData.length > 0) {
+    // Add Bollinger Bands (on main chart)
+    if (bollingerData) {
+      const upperBand = chart.addSeries(LineSeries, {
+        color: "hsl(180, 85%, 55%)",
+        lineWidth: 1,
+        lineStyle: 2, // Dashed
+      });
+      upperBand.setData(bollingerData.upper.filter((d) => !isNaN(d.value)));
+      seriesRefs.current.set("bollinger-upper", upperBand);
+
+      const middleBand = chart.addSeries(LineSeries, {
+        color: "hsl(180, 85%, 55%)",
+        lineWidth: 1,
+      });
+      middleBand.setData(bollingerData.middle.filter((d) => !isNaN(d.value)));
+      seriesRefs.current.set("bollinger-middle", middleBand);
+
+      const lowerBand = chart.addSeries(LineSeries, {
+        color: "hsl(180, 85%, 55%)",
+        lineWidth: 1,
+        lineStyle: 2, // Dashed
+      });
+      lowerBand.setData(bollingerData.lower.filter((d) => !isNaN(d.value)));
+      seriesRefs.current.set("bollinger-lower", lowerBand);
+    }
+
+    // Add Volume series if enabled
+    if (showVolume && volumeData && volumeData.length > 0) {
       const volumeSeries = chart.addSeries(HistogramSeries, {
         color: "hsl(180, 85%, 55%)",
         priceFormat: {
@@ -93,7 +139,61 @@ export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: Tr
       });
       
       volumeSeries.setData(volumeData);
-      volumeSeriesRef.current = volumeSeries as any;
+      seriesRefs.current.set("volume", volumeSeries);
+    }
+
+    // Add RSI series (separate scale)
+    if (rsiData) {
+      const rsiSeries = chart.addSeries(LineSeries, {
+        color: "hsl(270, 70%, 60%)",
+        lineWidth: 2,
+        priceScaleId: "rsi",
+      });
+      
+      rsiSeries.priceScale().applyOptions({
+        scaleMargins: {
+          top: 0.85,
+          bottom: 0,
+        },
+      });
+      
+      rsiSeries.setData(rsiData.filter((d) => !isNaN(d.value)));
+      seriesRefs.current.set("rsi", rsiSeries);
+    }
+
+    // Add MACD series (separate scale)
+    if (macdData) {
+      const macdSeries = chart.addSeries(LineSeries, {
+        color: "hsl(200, 70%, 60%)",
+        lineWidth: 2,
+        priceScaleId: "macd",
+      });
+      
+      macdSeries.priceScale().applyOptions({
+        scaleMargins: {
+          top: 0.9,
+          bottom: 0,
+        },
+      });
+      
+      macdSeries.setData(macdData.macd.filter((d) => !isNaN(d.value)));
+      seriesRefs.current.set("macd", macdSeries);
+
+      const signalSeries = chart.addSeries(LineSeries, {
+        color: "hsl(30, 70%, 60%)",
+        lineWidth: 2,
+        priceScaleId: "macd",
+      });
+      signalSeries.setData(macdData.signal.filter((d) => !isNaN(d.value)));
+      seriesRefs.current.set("macd-signal", signalSeries);
+
+      const histogramSeries = chart.addSeries(HistogramSeries, {
+        priceScaleId: "macd",
+      });
+      histogramSeries.setData(
+        macdData.histogram.filter((d) => !isNaN(d.value))
+      );
+      seriesRefs.current.set("macd-histogram", histogramSeries);
     }
 
     chart.timeScale().fitContent();
@@ -112,7 +212,7 @@ export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: Tr
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, volumeData, chartType]);
+  }, [data, volumeData, chartType, showVolume, rsiData, macdData, bollingerData]);
 
   return <div ref={chartContainerRef} className="w-full" />;
 };
