@@ -5,9 +5,9 @@ import {
   ISeriesApi, 
   CandlestickData, 
   Time,
-  CandlestickSeriesPartialOptions,
-  LineSeriesPartialOptions,
-  HistogramSeriesPartialOptions
+  CandlestickSeries,
+  LineSeries,
+  HistogramSeries
 } from "lightweight-charts";
 
 interface TradingChartProps {
@@ -53,20 +53,20 @@ export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: Tr
 
     // Add main series
     if (chartType === "candlestick") {
-      const candlestickSeries = chart.addSeries("Candlestick" as any, {
+      const candlestickSeries = chart.addSeries(CandlestickSeries, {
         upColor: "hsl(142, 76%, 36%)",
         downColor: "hsl(0, 72%, 51%)",
         borderVisible: false,
         wickUpColor: "hsl(142, 76%, 36%)",
         wickDownColor: "hsl(0, 72%, 51%)",
-      } as CandlestickSeriesPartialOptions);
+      });
       candlestickSeries.setData(data);
       seriesRef.current = candlestickSeries as any;
     } else {
-      const lineSeries = chart.addSeries("Line" as any, {
+      const lineSeries = chart.addSeries(LineSeries, {
         color: "hsl(180, 85%, 55%)",
         lineWidth: 2,
-      } as LineSeriesPartialOptions);
+      });
       const lineData = data.map((d) => ({
         time: d.time,
         value: d.close,
@@ -77,13 +77,13 @@ export const TradingChart = ({ data, volumeData, chartType = "candlestick" }: Tr
 
     // Add volume series if provided
     if (volumeData && volumeData.length > 0) {
-      const volumeSeries = chart.addSeries("Histogram" as any, {
+      const volumeSeries = chart.addSeries(HistogramSeries, {
         color: "hsl(180, 85%, 55%)",
         priceFormat: {
           type: "volume",
         },
         priceScaleId: "",
-      } as HistogramSeriesPartialOptions);
+      });
       
       volumeSeries.priceScale().applyOptions({
         scaleMargins: {
