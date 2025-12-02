@@ -44,9 +44,15 @@ export const TradingChart = ({
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
+    const getResponsiveHeight = () => {
+      if (window.innerWidth < 640) return 400; // mobile
+      if (window.innerWidth < 1024) return 450; // tablet
+      return 550; // desktop
+    };
+
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 500,
+      height: getResponsiveHeight(),
       layout: {
         background: { color: "hsl(220, 20%, 14%)" },
         textColor: "hsl(210, 40%, 98%)",
@@ -200,8 +206,15 @@ export const TradingChart = ({
 
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
+        const getResponsiveHeight = () => {
+          if (window.innerWidth < 640) return 400;
+          if (window.innerWidth < 1024) return 450;
+          return 550;
+        };
+
         chartRef.current.applyOptions({
           width: chartContainerRef.current.clientWidth,
+          height: getResponsiveHeight(),
         });
       }
     };

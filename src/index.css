@@ -62,5 +62,16 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "tnum" on;
+  }
+
+  /* Smooth scrolling for mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Better number rendering */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
