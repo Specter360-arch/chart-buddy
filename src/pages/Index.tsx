@@ -4,9 +4,14 @@ import { TradingChart } from "@/components/TradingChart";
 import { MarketStats } from "@/components/MarketStats";
 import { IndicatorPanel, IndicatorType } from "@/components/IndicatorPanel";
 import { IndicatorParameters } from "@/components/IndicatorSettings";
+import { WatchlistSidebar } from "@/components/WatchlistSidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { generateCandlestickData, generateVolumeData, getMarketStats } from "@/utils/chartData";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
 import { CandlestickData, Time } from "lightweight-charts";
+import { Menu } from "lucide-react";
+
+const availableSymbols = ["BTC/USD", "ETH/USD", "SOL/USD", "AAPL", "GOOGL", "TSLA"];
 
 const Index = () => {
   const [selectedSymbol, setSelectedSymbol] = useState("BTC/USD");
@@ -75,55 +80,70 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header
-        selectedSymbol={selectedSymbol}
-        onSymbolChange={setSelectedSymbol}
-        selectedTimeframe={selectedTimeframe}
-        onTimeframeChange={setSelectedTimeframe}
-        chartType={chartType}
-        onChartTypeChange={setChartType}
-      />
+    <SidebarProvider>
+      <div className="min-h-screen bg-background flex w-full">
+        <WatchlistSidebar
+          selectedSymbol={selectedSymbol}
+          onSymbolChange={setSelectedSymbol}
+          availableSymbols={availableSymbols}
+          currentStats={{
+            price: stats.price,
+            change: stats.change,
+            changePercent: stats.changePercent,
+          }}
+        />
 
-      <main className="flex-1 p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-3 sm:gap-4 lg:gap-6">
-          <div className="flex-1 min-w-0">
-            <MarketStats
-              symbol={selectedSymbol}
-              price={stats.price}
-              change={stats.change}
-              changePercent={stats.changePercent}
-              high24h={stats.high24h}
-              low24h={stats.low24h}
-              volume24h={stats.volume24h}
-            />
-          </div>
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header
+            selectedSymbol={selectedSymbol}
+            onSymbolChange={setSelectedSymbol}
+            selectedTimeframe={selectedTimeframe}
+            onTimeframeChange={setSelectedTimeframe}
+            chartType={chartType}
+            onChartTypeChange={setChartType}
+          />
 
-          <div className="lg:flex-shrink-0">
-            <IndicatorPanel
-              activeIndicators={activeIndicators}
-              onToggleIndicator={handleToggleIndicator}
-              indicatorParameters={indicatorParameters}
-              onParametersChange={setIndicatorParameters}
-            />
-          </div>
+          <main className="flex-1 p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-start gap-3 sm:gap-4 lg:gap-6">
+              <div className="flex-1 min-w-0">
+                <MarketStats
+                  symbol={selectedSymbol}
+                  price={stats.price}
+                  change={stats.change}
+                  changePercent={stats.changePercent}
+                  high24h={stats.high24h}
+                  low24h={stats.low24h}
+                  volume24h={stats.volume24h}
+                />
+              </div>
+
+              <div className="lg:flex-shrink-0">
+                <IndicatorPanel
+                  activeIndicators={activeIndicators}
+                  onToggleIndicator={handleToggleIndicator}
+                  indicatorParameters={indicatorParameters}
+                  onParametersChange={setIndicatorParameters}
+                />
+              </div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-border p-2 sm:p-3 lg:p-4">
+              {chartData.length > 0 && (
+                <TradingChart
+                  data={chartData}
+                  volumeData={volumeData}
+                  chartType={chartType}
+                  showVolume={activeIndicators.includes("volume")}
+                  rsiData={indicators.rsi}
+                  macdData={indicators.macd}
+                  bollingerData={indicators.bollinger}
+                />
+              )}
+            </div>
+          </main>
         </div>
-
-        <div className="bg-card rounded-lg border border-border p-2 sm:p-3 lg:p-4">
-          {chartData.length > 0 && (
-            <TradingChart
-              data={chartData}
-              volumeData={volumeData}
-              chartType={chartType}
-              showVolume={activeIndicators.includes("volume")}
-              rsiData={indicators.rsi}
-              macdData={indicators.macd}
-              bollingerData={indicators.bollinger}
-            />
-          )}
-        </div>
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 

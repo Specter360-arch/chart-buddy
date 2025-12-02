@@ -1,5 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { BarChart3, CandlestickChart } from "lucide-react";
 
 interface HeaderProps {
@@ -26,6 +27,7 @@ export const Header = ({
     <header className="border-b border-border bg-card">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-3 sm:px-4 lg:px-6 py-3">
         <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
+          <SidebarTrigger className="shrink-0" />
           <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap">
             TradeView
           </h1>
