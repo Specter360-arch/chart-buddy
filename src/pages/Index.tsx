@@ -85,27 +85,31 @@ const Index = () => {
         onChartTypeChange={setChartType}
       />
 
-      <main className="flex-1 p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <MarketStats
-            symbol={selectedSymbol}
-            price={stats.price}
-            change={stats.change}
-            changePercent={stats.changePercent}
-            high24h={stats.high24h}
-            low24h={stats.low24h}
-            volume24h={stats.volume24h}
-          />
+      <main className="flex-1 p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-3 sm:gap-4 lg:gap-6">
+          <div className="flex-1 min-w-0">
+            <MarketStats
+              symbol={selectedSymbol}
+              price={stats.price}
+              change={stats.change}
+              changePercent={stats.changePercent}
+              high24h={stats.high24h}
+              low24h={stats.low24h}
+              volume24h={stats.volume24h}
+            />
+          </div>
 
-          <IndicatorPanel
-            activeIndicators={activeIndicators}
-            onToggleIndicator={handleToggleIndicator}
-            indicatorParameters={indicatorParameters}
-            onParametersChange={setIndicatorParameters}
-          />
+          <div className="lg:flex-shrink-0">
+            <IndicatorPanel
+              activeIndicators={activeIndicators}
+              onToggleIndicator={handleToggleIndicator}
+              indicatorParameters={indicatorParameters}
+              onParametersChange={setIndicatorParameters}
+            />
+          </div>
         </div>
 
-        <div className="bg-card rounded-lg border border-border p-4">
+        <div className="bg-card rounded-lg border border-border p-2 sm:p-3 lg:p-4">
           {chartData.length > 0 && (
             <TradingChart
               data={chartData}

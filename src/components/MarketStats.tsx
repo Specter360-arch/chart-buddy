@@ -23,21 +23,23 @@ export const MarketStats = ({
   const isPositive = change >= 0;
 
   return (
-    <Card className="p-4 bg-card border-border">
-      <div className="space-y-3">
+    <Card className="p-3 sm:p-4 bg-card border-border">
+      <div className="space-y-2 sm:space-y-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm text-muted-foreground">{symbol}</h2>
+            <h2 className="text-xs sm:text-sm text-muted-foreground font-medium">{symbol}</h2>
             {isPositive ? (
-              <TrendingUp className="h-4 w-4 text-success" />
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success" />
             ) : (
-              <TrendingDown className="h-4 w-4 text-destructive" />
+              <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
             )}
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">${price.toLocaleString()}</span>
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums">
+              ${price.toLocaleString()}
+            </span>
             <span
-              className={`text-sm font-medium ${
+              className={`text-xs sm:text-sm font-medium tabular-nums ${
                 isPositive ? "text-success" : "text-destructive"
               }`}
             >
@@ -47,18 +49,22 @@ export const MarketStats = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">24h High</div>
-            <div className="text-sm font-medium">${high24h.toLocaleString()}</div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-border">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1 font-medium">24h High</div>
+            <div className="text-xs sm:text-sm font-semibold tabular-nums truncate">
+              ${high24h.toLocaleString()}
+            </div>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">24h Low</div>
-            <div className="text-sm font-medium">${low24h.toLocaleString()}</div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1 font-medium">24h Low</div>
+            <div className="text-xs sm:text-sm font-semibold tabular-nums truncate">
+              ${low24h.toLocaleString()}
+            </div>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">24h Volume</div>
-            <div className="text-sm font-medium">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1 font-medium">24h Volume</div>
+            <div className="text-xs sm:text-sm font-semibold tabular-nums truncate">
               ${(volume24h / 1000000).toFixed(2)}M
             </div>
           </div>

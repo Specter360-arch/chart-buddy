@@ -49,26 +49,26 @@ export const IndicatorPanel = ({
   onParametersChange 
 }: IndicatorPanelProps) => {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
       {/* Active indicators chips */}
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-1 sm:gap-1.5">
         {activeIndicators.map((id) => {
           const indicator = indicators.find((i) => i.id === id);
           const hasSettings = id === "rsi" || id === "macd" || id === "bollinger";
           
           return (
-            <div key={id} className="flex items-center gap-0.5">
+            <div key={id} className="flex items-center gap-0">
               <Button
                 variant="secondary"
                 size="sm"
-                className="h-7 px-2 text-xs gap-1 rounded-r-none"
+                className="h-7 sm:h-8 px-2 sm:px-2.5 text-xs gap-1 rounded-r-none min-w-fit"
                 onClick={() => onToggleIndicator(id)}
               >
-                {indicator?.name}
+                <span className="font-medium">{indicator?.name}</span>
                 <X className="h-3 w-3" />
               </Button>
               {hasSettings && (
-                <div className="bg-secondary border-l border-border h-7 flex items-center px-1 rounded-r">
+                <div className="bg-secondary border-l border-border h-7 sm:h-8 flex items-center px-1 rounded-r">
                   <IndicatorSettings
                     indicatorType={id as "rsi" | "macd" | "bollinger"}
                     parameters={indicatorParameters}
@@ -84,42 +84,43 @@ export const IndicatorPanel = ({
       {/* Add indicator popover */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-7 px-3 gap-1">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-xs">Indicators</span>
+          <Button variant="outline" size="sm" className="h-7 sm:h-8 px-2.5 sm:px-3 gap-1.5 min-w-fit">
+            <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="text-xs font-medium">Indicators</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 bg-card border-border z-50" align="start">
+        <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 bg-card border-border z-50" align="start">
           <div className="space-y-4">
             <div>
-              <h4 className="font-medium mb-2">Technical Indicators</h4>
+              <h4 className="font-semibold text-sm sm:text-base mb-2">Technical Indicators</h4>
               <p className="text-xs text-muted-foreground mb-3">
                 Select indicators to display on the chart
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {indicators.map((indicator) => {
                 const isActive = activeIndicators.includes(indicator.id);
                 return (
                   <Card
                     key={indicator.id}
-                    className={`p-3 cursor-pointer transition-colors ${
+                    className={`p-2.5 sm:p-3 cursor-pointer transition-colors ${
                       isActive ? "bg-primary/10 border-primary" : "hover:bg-accent"
                     }`}
                     onClick={() => onToggleIndicator(indicator.id)}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-2.5 sm:gap-3">
                       <Checkbox
                         id={indicator.id}
                         checked={isActive}
                         onCheckedChange={() => onToggleIndicator(indicator.id)}
                         onClick={(e) => e.stopPropagation()}
+                        className="mt-0.5"
                       />
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <Label
                           htmlFor={indicator.id}
-                          className="text-sm font-medium cursor-pointer"
+                          className="text-sm font-semibold cursor-pointer"
                         >
                           {indicator.name}
                         </Label>
