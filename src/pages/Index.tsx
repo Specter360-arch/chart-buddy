@@ -1,17 +1,20 @@
 import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/Header";
-import { TradingChart } from "@/components/TradingChart";
+import { ChartWithDrawings } from "@/components/ChartWithDrawings";
+import { DrawingToolbar } from "@/components/DrawingToolbar";
 import { MarketStats } from "@/components/MarketStats";
 import { IndicatorPanel, IndicatorType } from "@/components/IndicatorPanel";
 import { IndicatorParameters } from "@/components/IndicatorSettings";
 import { WatchlistSidebar } from "@/components/WatchlistSidebar";
 import { MultiChartLayout } from "@/components/MultiChartLayout";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { generateCandlestickData, generateVolumeData, getMarketStats } from "@/utils/chartData";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
 import { CandlestickData, Time } from "lightweight-charts";
-import { Grid2X2, Maximize2 } from "lucide-react";
+import { Grid2X2 } from "lucide-react";
+import { useChartDrawings } from "@/hooks/useChartDrawings";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const availableSymbols = ["BTC/USD", "ETH/USD", "SOL/USD", "AAPL", "GOOGL", "TSLA"];
 
@@ -29,8 +32,24 @@ const Index = () => {
     bollinger: { period: 20, stdDev: 2 },
   });
 
+  // Drawing tools
+  const {
+    drawings,
+    activeDrawingTool,
+    isDrawing,
+    currentDrawing,
+    drawingColor,
+    setDrawingColor,
+    startDrawing,
+    updateCurrentDrawing,
+    finishDrawing,
+    selectTool,
+    clearAllDrawings,
+    setSelectedDrawingId,
+    selectedDrawingId,
+  } = useChartDrawings({ chartId: `main-${selectedSymbol}` });
+
   useEffect(() => {
-    // Generate data based on selected symbol
     const basePrice = selectedSymbol.includes("BTC")
       ? 45000
       : selectedSymbol.includes("ETH")
@@ -46,9 +65,36 @@ const Index = () => {
     setVolumeData(volume);
   }, [selectedSymbol, selectedTimeframe]);
 
+  // Keyboard shortcuts for drawing tools
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      
+      switch (e.key.toLowerCase()) {
+        case "t":
+          selectTool("trendline");
+          break;
+        case "h":
+          selectTool("horizontal");
+          break;
+        case "f":
+          selectTool("fibonacci");
+          break;
+        case "c":
+          selectTool("channel");
+          break;
+        case "escape":
+          selectTool(null);
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectTool]);
+
   const stats = getMarketStats(chartData);
 
-  // Calculate indicators based on active indicators and their parameters
   const indicators = useMemo(() => {
     if (chartData.length === 0) return {};
 
@@ -83,88 +129,116 @@ const Index = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen bg-background flex w-full">
-        <WatchlistSidebar
-          selectedSymbol={selectedSymbol}
-          onSymbolChange={setSelectedSymbol}
-          availableSymbols={availableSymbols}
-          currentStats={{
-            price: stats.price,
-            change: stats.change,
-            changePercent: stats.changePercent,
-          }}
-        />
-
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header
+    <TooltipProvider>
+      <SidebarProvider>
+        <div className="min-h-screen bg-background flex w-full">
+          <WatchlistSidebar
             selectedSymbol={selectedSymbol}
             onSymbolChange={setSelectedSymbol}
-            selectedTimeframe={selectedTimeframe}
-            onTimeframeChange={setSelectedTimeframe}
-            chartType={chartType}
-            onChartTypeChange={setChartType}
+            availableSymbols={availableSymbols}
+            currentStats={{
+              price: stats.price,
+              change: stats.change,
+              changePercent: stats.changePercent,
+            }}
           />
 
-          {isMultiChartView ? (
-            <MultiChartLayout
-              availableSymbols={availableSymbols}
-              onExitMultiView={() => setIsMultiChartView(false)}
-              initialSymbol={selectedSymbol}
+          <div className="flex-1 flex flex-col min-w-0">
+            <Header
+              selectedSymbol={selectedSymbol}
+              onSymbolChange={setSelectedSymbol}
+              selectedTimeframe={selectedTimeframe}
+              onTimeframeChange={setSelectedTimeframe}
+              chartType={chartType}
+              onChartTypeChange={setChartType}
             />
-          ) : (
-            <main className="flex-1 p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
-              <div className="flex flex-col lg:flex-row lg:items-start gap-3 sm:gap-4 lg:gap-6">
-                <div className="flex-1 min-w-0">
-                  <MarketStats
-                    symbol={selectedSymbol}
-                    price={stats.price}
-                    change={stats.change}
-                    changePercent={stats.changePercent}
-                    high24h={stats.high24h}
-                    low24h={stats.low24h}
-                    volume24h={stats.volume24h}
-                  />
+
+            {isMultiChartView ? (
+              <MultiChartLayout
+                availableSymbols={availableSymbols}
+                onExitMultiView={() => setIsMultiChartView(false)}
+                initialSymbol={selectedSymbol}
+              />
+            ) : (
+              <main className="flex-1 p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-3 sm:gap-4 lg:gap-6">
+                  <div className="flex-1 min-w-0">
+                    <MarketStats
+                      symbol={selectedSymbol}
+                      price={stats.price}
+                      change={stats.change}
+                      changePercent={stats.changePercent}
+                      high24h={stats.high24h}
+                      low24h={stats.low24h}
+                      volume24h={stats.volume24h}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 lg:flex-shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsMultiChartView(true)}
+                      className="h-8 gap-2"
+                    >
+                      <Grid2X2 className="h-4 w-4" />
+                      <span className="text-xs">Multi-Chart</span>
+                    </Button>
+
+                    <IndicatorPanel
+                      activeIndicators={activeIndicators}
+                      onToggleIndicator={handleToggleIndicator}
+                      indicatorParameters={indicatorParameters}
+                      onParametersChange={setIndicatorParameters}
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 lg:flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsMultiChartView(true)}
-                    className="h-8 gap-2"
-                  >
-                    <Grid2X2 className="h-4 w-4" />
-                    <span className="text-xs">Multi-Chart</span>
-                  </Button>
-
-                  <IndicatorPanel
-                    activeIndicators={activeIndicators}
-                    onToggleIndicator={handleToggleIndicator}
-                    indicatorParameters={indicatorParameters}
-                    onParametersChange={setIndicatorParameters}
+                {/* Drawing Toolbar */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <DrawingToolbar
+                    activeTool={activeDrawingTool}
+                    onSelectTool={selectTool}
+                    onClearAll={clearAllDrawings}
+                    drawingColor={drawingColor}
+                    onColorChange={setDrawingColor}
+                    hasDrawings={drawings.length > 0}
                   />
+                  {drawings.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {drawings.length} drawing{drawings.length !== 1 ? "s" : ""} saved
+                    </span>
+                  )}
                 </div>
-              </div>
 
-              <div className="bg-card rounded-lg border border-border p-2 sm:p-3 lg:p-4">
-                {chartData.length > 0 && (
-                  <TradingChart
-                    data={chartData}
-                    volumeData={volumeData}
-                    chartType={chartType}
-                    showVolume={activeIndicators.includes("volume")}
-                    rsiData={indicators.rsi}
-                    macdData={indicators.macd}
-                    bollingerData={indicators.bollinger}
-                  />
-                )}
-              </div>
-            </main>
-          )}
+                <div className="bg-card rounded-lg border border-border p-2 sm:p-3 lg:p-4">
+                  {chartData.length > 0 && (
+                    <ChartWithDrawings
+                      data={chartData}
+                      volumeData={volumeData}
+                      chartType={chartType}
+                      showVolume={activeIndicators.includes("volume")}
+                      rsiData={indicators.rsi}
+                      macdData={indicators.macd}
+                      bollingerData={indicators.bollinger}
+                      drawings={drawings}
+                      currentDrawing={currentDrawing}
+                      activeDrawingTool={activeDrawingTool}
+                      isDrawing={isDrawing}
+                      onDrawingStart={startDrawing}
+                      onDrawingUpdate={updateCurrentDrawing}
+                      onDrawingEnd={finishDrawing}
+                      onDrawingSelect={setSelectedDrawingId}
+                      selectedDrawingId={selectedDrawingId}
+                    />
+                  )}
+                </div>
+              </main>
+            )}
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 };
 
