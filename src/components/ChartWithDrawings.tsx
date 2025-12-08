@@ -63,7 +63,30 @@ export const ChartWithDrawings = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<any> | null>(null);
-  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Use refs to avoid stale closures in event handlers
+  const activeDrawingToolRef = useRef(activeDrawingTool);
+  const isDrawingRef = useRef(isDrawing);
+  const onDrawingStartRef = useRef(onDrawingStart);
+  const onDrawingUpdateRef = useRef(onDrawingUpdate);
+  const onDrawingEndRef = useRef(onDrawingEnd);
+  const onDrawingSelectRef = useRef(onDrawingSelect);
+
+  // Keep refs updated
+  useEffect(() => {
+    activeDrawingToolRef.current = activeDrawingTool;
+  }, [activeDrawingTool]);
+
+  useEffect(() => {
+    isDrawingRef.current = isDrawing;
+  }, [isDrawing]);
+
+  useEffect(() => {
+    onDrawingStartRef.current = onDrawingStart;
+    onDrawingUpdateRef.current = onDrawingUpdate;
+    onDrawingEndRef.current = onDrawingEnd;
+    onDrawingSelectRef.current = onDrawingSelect;
+  }, [onDrawingStart, onDrawingUpdate, onDrawingEnd, onDrawingSelect]);
 
   // Get chart coordinates from mouse event
   const getChartPoint = useCallback(
@@ -98,12 +121,27 @@ export const ChartWithDrawings = ({
     const timeScale = chart.timeScale();
     const allDrawings = [...drawings, currentDrawing].filter(Boolean) as Drawing[];
     
+    // Helper to draw handles/control points
+    const drawHandle = (x: number, y: number, isActive: boolean = false) => {
+      ctx.save();
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(x, y, isActive ? 8 : 6, 0, Math.PI * 2);
+      ctx.fillStyle = isActive ? "rgba(34, 197, 94, 0.3)" : "rgba(255, 255, 255, 0.2)";
+      ctx.fill();
+      // Inner circle
+      ctx.beginPath();
+      ctx.arc(x, y, isActive ? 5 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = isActive ? "#22c55e" : "#ffffff";
+      ctx.fill();
+      ctx.strokeStyle = isActive ? "#16a34a" : "rgba(0, 0, 0, 0.5)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    };
+    
     allDrawings.forEach((drawing) => {
       if (!drawing.points || drawing.points.length === 0) return;
-      
-      ctx.strokeStyle = drawing.color;
-      ctx.lineWidth = drawing.lineWidth;
-      ctx.fillStyle = drawing.color;
       
       const points = drawing.points.map((p) => ({
         x: timeScale.timeToCoordinate(p.time),
@@ -114,46 +152,84 @@ export const ChartWithDrawings = ({
       if (points.some((p) => p.x === null || p.y === null)) return;
       
       const isSelected = drawing.id === selectedDrawingId;
-      if (isSelected) {
-        ctx.lineWidth = drawing.lineWidth + 1;
-        ctx.setLineDash([]);
-      }
+      const isCurrentlyDrawing = drawing.id?.startsWith("drawing-") && currentDrawing?.id === drawing.id;
+      const baseLineWidth = drawing.lineWidth || 2;
+      
+      // Set up drawing styles - thicker lines for better visibility
+      ctx.strokeStyle = drawing.color;
+      ctx.lineWidth = isSelected ? baseLineWidth + 2 : baseLineWidth + 1;
+      ctx.fillStyle = drawing.color;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.setLineDash([]);
       
       switch (drawing.type) {
         case "trendline":
           if (points.length >= 2) {
+            // Draw glow effect for visibility
+            ctx.save();
+            ctx.shadowColor = drawing.color;
+            ctx.shadowBlur = isSelected ? 8 : 4;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x!, points[0].y!);
+            ctx.lineTo(points[1].x!, points[1].y!);
+            ctx.stroke();
+            ctx.restore();
+            
+            // Draw main line
             ctx.beginPath();
             ctx.moveTo(points[0].x!, points[0].y!);
             ctx.lineTo(points[1].x!, points[1].y!);
             ctx.stroke();
             
-            // Draw handles if selected
-            if (isSelected) {
-              points.forEach((p) => {
-                ctx.beginPath();
-                ctx.arc(p.x!, p.y!, 5, 0, Math.PI * 2);
-                ctx.fill();
-              });
-            }
+            // Always draw handles for better visibility
+            points.forEach((p) => {
+              drawHandle(p.x!, p.y!, isSelected || isCurrentlyDrawing);
+            });
           }
           break;
           
         case "horizontal":
           if (points.length >= 1) {
             const y = points[0].y!;
+            
+            // Draw glow effect
+            ctx.save();
+            ctx.shadowColor = drawing.color;
+            ctx.shadowBlur = isSelected ? 6 : 3;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+            ctx.restore();
+            
+            // Draw main line
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(canvas.width, y);
             ctx.stroke();
             
-            // Price label
-            ctx.font = "11px sans-serif";
-            ctx.fillStyle = drawing.color;
+            // Price label with better styling
+            ctx.save();
+            ctx.font = "bold 12px Inter, sans-serif";
             const priceText = `$${drawing.points[0].price.toFixed(2)}`;
             const textWidth = ctx.measureText(priceText).width;
-            ctx.fillRect(canvas.width - textWidth - 8, y - 8, textWidth + 8, 16);
-            ctx.fillStyle = "#000";
-            ctx.fillText(priceText, canvas.width - textWidth - 4, y + 4);
+            const labelX = canvas.width - textWidth - 16;
+            const labelY = y;
+            
+            // Label background
+            ctx.fillStyle = drawing.color;
+            ctx.beginPath();
+            ctx.roundRect(labelX - 4, labelY - 10, textWidth + 12, 20, 4);
+            ctx.fill();
+            
+            // Label text
+            ctx.fillStyle = "#000000";
+            ctx.fillText(priceText, labelX + 2, labelY + 4);
+            ctx.restore();
+            
+            // Draw handle on left
+            drawHandle(40, y, isSelected || isCurrentlyDrawing);
           }
           break;
           
@@ -163,35 +239,67 @@ export const ChartWithDrawings = ({
             const endY = points[1].y!;
             const range = endY - startY;
             
-            drawing.fibLevels.forEach((level) => {
+            // Draw fib levels
+            drawing.fibLevels.forEach((level, index) => {
               const y = startY + range * (1 - level);
-              ctx.globalAlpha = 0.7;
+              const alpha = index === 0 || index === drawing.fibLevels!.length - 1 ? 1 : 0.7;
+              
+              ctx.save();
+              ctx.globalAlpha = alpha;
+              ctx.lineWidth = level === 0.5 || level === 0.618 ? 2.5 : 1.5;
               ctx.beginPath();
-              ctx.moveTo(0, y);
-              ctx.lineTo(canvas.width, y);
+              ctx.moveTo(points[0].x!, y);
+              ctx.lineTo(canvas.width - 60, y);
               ctx.stroke();
               
-              // Level label
-              ctx.font = "10px sans-serif";
-              ctx.fillStyle = drawing.color;
+              // Level label with background
+              ctx.font = "bold 11px Inter, sans-serif";
               const levelText = `${(level * 100).toFixed(1)}%`;
-              ctx.fillText(levelText, 5, y - 3);
+              const textWidth = ctx.measureText(levelText).width;
+              
+              // Background
+              ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+              ctx.fillRect(8, y - 8, textWidth + 8, 16);
+              
+              // Text
+              ctx.fillStyle = drawing.color;
+              ctx.fillText(levelText, 12, y + 4);
+              ctx.restore();
             });
-            ctx.globalAlpha = 1;
             
             // Connecting line
-            ctx.setLineDash([5, 5]);
+            ctx.save();
+            ctx.setLineDash([6, 4]);
+            ctx.lineWidth = 2;
+            ctx.shadowColor = drawing.color;
+            ctx.shadowBlur = 4;
             ctx.beginPath();
             ctx.moveTo(points[0].x!, points[0].y!);
             ctx.lineTo(points[1].x!, points[1].y!);
             ctx.stroke();
             ctx.setLineDash([]);
+            ctx.restore();
+            
+            // Draw handles
+            points.forEach((p) => {
+              drawHandle(p.x!, p.y!, isSelected || isCurrentlyDrawing);
+            });
           }
           break;
           
         case "channel":
           if (points.length >= 2) {
-            // Draw main trendline
+            // Draw main trendline with glow
+            ctx.save();
+            ctx.shadowColor = drawing.color;
+            ctx.shadowBlur = isSelected ? 6 : 3;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x!, points[0].y!);
+            ctx.lineTo(points[1].x!, points[1].y!);
+            ctx.stroke();
+            ctx.restore();
+            
+            // Draw main line
             ctx.beginPath();
             ctx.moveTo(points[0].x!, points[0].y!);
             ctx.lineTo(points[1].x!, points[1].y!);
@@ -199,8 +307,6 @@ export const ChartWithDrawings = ({
             
             // Draw parallel line
             if (points.length >= 3) {
-              const dx = points[1].x! - points[0].x!;
-              const dy = points[1].y! - points[0].y!;
               const offsetY = points[2].y! - points[0].y!;
               
               ctx.beginPath();
@@ -208,8 +314,9 @@ export const ChartWithDrawings = ({
               ctx.lineTo(points[1].x!, points[1].y! + offsetY);
               ctx.stroke();
               
-              // Fill channel
-              ctx.globalAlpha = 0.1;
+              // Fill channel with gradient-like effect
+              ctx.save();
+              ctx.globalAlpha = 0.15;
               ctx.beginPath();
               ctx.moveTo(points[0].x!, points[0].y!);
               ctx.lineTo(points[1].x!, points[1].y!);
@@ -217,8 +324,16 @@ export const ChartWithDrawings = ({
               ctx.lineTo(points[0].x!, points[0].y! + offsetY);
               ctx.closePath();
               ctx.fill();
-              ctx.globalAlpha = 1;
+              ctx.restore();
+              
+              // Draw handle for parallel line
+              drawHandle(points[0].x!, points[0].y! + offsetY, isSelected || isCurrentlyDrawing);
             }
+            
+            // Draw handles for main points
+            points.slice(0, 2).forEach((p) => {
+              drawHandle(p.x!, p.y!, isSelected || isCurrentlyDrawing);
+            });
           }
           break;
       }
@@ -250,7 +365,7 @@ export const ChartWithDrawings = ({
         horzLines: { color: "hsl(220, 18%, 16%)", style: 1 },
       },
       crosshair: {
-        mode: activeDrawingTool ? CrosshairMode.Normal : CrosshairMode.Magnet,
+        mode: CrosshairMode.Normal, // Always use normal mode, we'll handle drawing separately
         vertLine: {
           color: "hsl(180, 85%, 55%)",
           width: 1,
@@ -403,28 +518,28 @@ export const ChartWithDrawings = ({
 
     chart.timeScale().fitContent();
 
-    // Mouse event handlers for drawing
+    // Mouse event handlers for drawing - use refs to avoid stale closures
     chart.subscribeClick((param) => {
-      if (!activeDrawingTool) {
-        onDrawingSelect?.(null);
+      if (!activeDrawingToolRef.current) {
+        onDrawingSelectRef.current?.(null);
         return;
       }
       
       const point = getChartPoint(param);
       if (!point) return;
       
-      if (!isDrawing) {
-        onDrawingStart(point);
+      if (!isDrawingRef.current) {
+        onDrawingStartRef.current(point);
       } else {
-        onDrawingEnd();
+        onDrawingEndRef.current();
       }
     });
 
     chart.subscribeCrosshairMove((param) => {
-      if (isDrawing && activeDrawingTool) {
+      if (isDrawingRef.current && activeDrawingToolRef.current) {
         const point = getChartPoint(param);
         if (point) {
-          onDrawingUpdate(point);
+          onDrawingUpdateRef.current(point);
         }
       }
     });
@@ -452,7 +567,7 @@ export const ChartWithDrawings = ({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, volumeData, chartType, showVolume, rsiData, macdData, bollingerData, activeDrawingTool]);
+  }, [data, volumeData, chartType, showVolume, rsiData, macdData, bollingerData, getChartPoint, drawOnCanvas]);
 
   // Redraw canvas when drawings change
   useEffect(() => {
@@ -484,8 +599,9 @@ export const ChartWithDrawings = ({
         style={{ width: "100%", height: "100%" }}
       />
       {activeDrawingTool && (
-        <div className="absolute top-2 left-2 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded">
-          Drawing: {activeDrawingTool} • Click to start, click again to finish
+        <div className="absolute top-3 left-3 bg-success text-success-foreground text-sm font-medium px-3 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
+          <span className="w-2 h-2 bg-white rounded-full" />
+          Drawing: {activeDrawingTool} • Click to place first point, click again to finish
         </div>
       )}
     </div>
