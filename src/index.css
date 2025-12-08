@@ -41,8 +41,10 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    --chart-background: 220 20% 14%;
-    --chart-grid: 220 18% 20%;
+    --chart-background: 220 20% 10%;
+    --chart-grid: 220 18% 16%;
+    --chart-candle-up: 142 71% 45%;
+    --chart-candle-down: 0 84% 60%;
     
     --sidebar-background: 220 18% 16%;
     --sidebar-foreground: 210 40% 98%;

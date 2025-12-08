@@ -229,53 +229,99 @@ export const ChartWithDrawings = ({
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
+    // Much larger heights for better candle visibility like TradingView
     const getResponsiveHeight = () => {
-      if (window.innerWidth < 640) return 400;
-      if (window.innerWidth < 1024) return 450;
-      return 550;
+      if (window.innerWidth < 640) return 500; // mobile - increased
+      if (window.innerWidth < 1024) return 600; // tablet - increased
+      return 700; // desktop - significantly larger
     };
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: getResponsiveHeight(),
       layout: {
-        background: { color: "hsl(220, 20%, 14%)" },
+        background: { color: "hsl(220, 20%, 10%)" }, // Darker for better contrast
         textColor: "hsl(210, 40%, 98%)",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontSize: 12,
       },
       grid: {
-        vertLines: { color: "hsl(220, 18%, 20%)" },
-        horzLines: { color: "hsl(220, 18%, 20%)" },
+        vertLines: { color: "hsl(220, 18%, 16%)", style: 1 }, // Subtle grid
+        horzLines: { color: "hsl(220, 18%, 16%)", style: 1 },
       },
       crosshair: {
         mode: activeDrawingTool ? CrosshairMode.Normal : CrosshairMode.Magnet,
+        vertLine: {
+          color: "hsl(180, 85%, 55%)",
+          width: 1,
+          style: 2,
+          labelBackgroundColor: "hsl(180, 85%, 35%)",
+        },
+        horzLine: {
+          color: "hsl(180, 85%, 55%)",
+          width: 1,
+          style: 2,
+          labelBackgroundColor: "hsl(180, 85%, 35%)",
+        },
       },
       rightPriceScale: {
-        borderColor: "hsl(220, 18%, 24%)",
+        borderColor: "hsl(220, 18%, 20%)",
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.2,
+        },
+        autoScale: true,
+        alignLabels: true,
       },
       timeScale: {
-        borderColor: "hsl(220, 18%, 24%)",
+        borderColor: "hsl(220, 18%, 20%)",
         timeVisible: true,
         secondsVisible: false,
+        barSpacing: 12, // Wider bars for better visibility
+        minBarSpacing: 6,
+        rightOffset: 5,
+      },
+      handleScale: {
+        axisPressedMouseMove: {
+          time: true,
+          price: true,
+        },
+      },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: true,
       },
     });
 
     chartRef.current = chart;
 
-    // Add main series
+    // Add main series with enhanced visibility
     if (chartType === "candlestick") {
       const candlestickSeries = chart.addSeries(CandlestickSeries, {
-        upColor: "hsl(142, 76%, 36%)",
-        downColor: "hsl(0, 72%, 51%)",
-        borderVisible: false,
-        wickUpColor: "hsl(142, 76%, 36%)",
-        wickDownColor: "hsl(0, 72%, 51%)",
+        upColor: "#22c55e", // Bright green for bullish
+        downColor: "#ef4444", // Bright red for bearish
+        borderVisible: true,
+        borderUpColor: "#16a34a", // Slightly darker border
+        borderDownColor: "#dc2626",
+        wickUpColor: "#22c55e",
+        wickDownColor: "#ef4444",
       });
       candlestickSeries.setData(data);
+      candlestickSeries.priceScale().applyOptions({
+        scaleMargins: {
+          top: 0.05,
+          bottom: 0.15, // Leave room for volume
+        },
+      });
       mainSeriesRef.current = candlestickSeries;
     } else {
       const lineSeries = chart.addSeries(LineSeries, {
         color: "hsl(180, 85%, 55%)",
         lineWidth: 2,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 4,
       });
       lineSeries.setData(data.map((d) => ({ time: d.time, value: d.close })));
       mainSeriesRef.current = lineSeries;

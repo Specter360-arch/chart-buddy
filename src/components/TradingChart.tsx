@@ -45,53 +45,77 @@ export const TradingChart = ({
     if (!chartContainerRef.current) return;
 
     const getResponsiveHeight = () => {
-      if (window.innerWidth < 640) return 400; // mobile
-      if (window.innerWidth < 1024) return 450; // tablet
-      return 550; // desktop
+      if (window.innerWidth < 640) return 500; // mobile - increased
+      if (window.innerWidth < 1024) return 600; // tablet - increased
+      return 700; // desktop - significantly larger
     };
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: getResponsiveHeight(),
       layout: {
-        background: { color: "hsl(220, 20%, 14%)" },
+        background: { color: "hsl(220, 20%, 10%)" },
         textColor: "hsl(210, 40%, 98%)",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontSize: 12,
       },
       grid: {
-        vertLines: { color: "hsl(220, 18%, 20%)" },
-        horzLines: { color: "hsl(220, 18%, 20%)" },
+        vertLines: { color: "hsl(220, 18%, 16%)", style: 1 },
+        horzLines: { color: "hsl(220, 18%, 16%)", style: 1 },
       },
       crosshair: {
         mode: 1,
+        vertLine: {
+          color: "hsl(180, 85%, 55%)",
+          width: 1,
+          style: 2,
+          labelBackgroundColor: "hsl(180, 85%, 35%)",
+        },
+        horzLine: {
+          color: "hsl(180, 85%, 55%)",
+          width: 1,
+          style: 2,
+          labelBackgroundColor: "hsl(180, 85%, 35%)",
+        },
       },
       rightPriceScale: {
-        borderColor: "hsl(220, 18%, 24%)",
+        borderColor: "hsl(220, 18%, 20%)",
+        scaleMargins: { top: 0.1, bottom: 0.2 },
       },
       timeScale: {
-        borderColor: "hsl(220, 18%, 24%)",
+        borderColor: "hsl(220, 18%, 20%)",
         timeVisible: true,
         secondsVisible: false,
+        barSpacing: 12,
+        minBarSpacing: 6,
       },
     });
 
     chartRef.current = chart;
     seriesRefs.current.clear();
 
-    // Add main series
+    // Add main series with enhanced visibility
     if (chartType === "candlestick") {
       const candlestickSeries = chart.addSeries(CandlestickSeries, {
-        upColor: "hsl(142, 76%, 36%)",
-        downColor: "hsl(0, 72%, 51%)",
-        borderVisible: false,
-        wickUpColor: "hsl(142, 76%, 36%)",
-        wickDownColor: "hsl(0, 72%, 51%)",
+        upColor: "#22c55e",
+        downColor: "#ef4444",
+        borderVisible: true,
+        borderUpColor: "#16a34a",
+        borderDownColor: "#dc2626",
+        wickUpColor: "#22c55e",
+        wickDownColor: "#ef4444",
       });
       candlestickSeries.setData(data);
+      candlestickSeries.priceScale().applyOptions({
+        scaleMargins: { top: 0.05, bottom: 0.15 },
+      });
       seriesRefs.current.set("main", candlestickSeries);
     } else {
       const lineSeries = chart.addSeries(LineSeries, {
         color: "hsl(180, 85%, 55%)",
         lineWidth: 2,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 4,
       });
       const lineData = data.map((d) => ({
         time: d.time,
@@ -207,9 +231,9 @@ export const TradingChart = ({
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
         const getResponsiveHeight = () => {
-          if (window.innerWidth < 640) return 400;
-          if (window.innerWidth < 1024) return 450;
-          return 550;
+          if (window.innerWidth < 640) return 500;
+          if (window.innerWidth < 1024) return 600;
+          return 700;
         };
 
         chartRef.current.applyOptions({

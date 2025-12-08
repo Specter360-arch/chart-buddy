@@ -211,7 +211,7 @@ const Index = () => {
                   )}
                 </div>
 
-                <div className="bg-card rounded-lg border border-border p-2 sm:p-3 lg:p-4">
+                <div className="bg-card rounded-xl border border-border overflow-hidden shadow-lg">
                   {chartData.length > 0 && (
                     <ChartWithDrawings
                       data={chartData}
