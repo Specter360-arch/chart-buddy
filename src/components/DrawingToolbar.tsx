@@ -29,6 +29,7 @@ interface DrawingToolbarProps {
   onColorChange: (color: string) => void;
   hasDrawings: boolean;
   compact?: boolean;
+  vertical?: boolean;
 }
 
 const tools: { type: DrawingType; icon: React.ReactNode; label: string; shortcut?: string }[] = [
@@ -57,10 +58,12 @@ export const DrawingToolbar = ({
   onColorChange,
   hasDrawings,
   compact = false,
+  vertical = false,
 }: DrawingToolbarProps) => {
   return (
     <div className={cn(
-      "flex items-center gap-1 bg-secondary/50 rounded-lg p-1",
+      "flex gap-1 bg-secondary/50 rounded-lg p-1",
+      vertical ? "flex-col items-center" : "items-center flex-row",
       compact ? "flex-wrap" : ""
     )}>
       {/* Selection tool */}
@@ -80,7 +83,7 @@ export const DrawingToolbar = ({
         </TooltipContent>
       </Tooltip>
 
-      <div className="w-px h-6 bg-border mx-1" />
+      <div className={cn(vertical ? "h-px w-6 my-1" : "w-px h-6 mx-1", "bg-border")} />
 
       {/* Drawing tools */}
       {tools.map((tool) => (
@@ -101,7 +104,7 @@ export const DrawingToolbar = ({
         </Tooltip>
       ))}
 
-      <div className="w-px h-6 bg-border mx-1" />
+      <div className={cn(vertical ? "h-px w-6 my-1" : "w-px h-6 mx-1", "bg-border")} />
 
       {/* Color picker */}
       <Popover>
@@ -133,7 +136,7 @@ export const DrawingToolbar = ({
       {/* Clear all */}
       {hasDrawings && (
         <>
-          <div className="w-px h-6 bg-border mx-1" />
+          <div className={cn(vertical ? "h-px w-6 my-1" : "w-px h-6 mx-1", "bg-border")} />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

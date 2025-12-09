@@ -7,30 +7,41 @@ import { IndicatorPanel, IndicatorType } from "@/components/IndicatorPanel";
 import { IndicatorParameters } from "@/components/IndicatorSettings";
 import { WatchlistSidebar } from "@/components/WatchlistSidebar";
 import { MultiChartLayout } from "@/components/MultiChartLayout";
+import { FullscreenChart } from "@/components/FullscreenChart";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { generateCandlestickData, generateVolumeData, getMarketStats } from "@/utils/chartData";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
 import { CandlestickData, Time } from "lightweight-charts";
-import { Grid2X2 } from "lucide-react";
+import { Grid2X2, Maximize2, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useChartDrawings } from "@/hooks/useChartDrawings";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useMarketData } from "@/hooks/useMarketData";
+import { ALL_SYMBOLS, MARKET_SYMBOLS } from "@/services/marketData";
+import { toast } from "sonner";
 
-const availableSymbols = ["BTC/USD", "ETH/USD", "SOL/USD", "AAPL", "GOOGL", "TSLA"];
+// Get all symbol names for the UI
+const availableSymbols = ALL_SYMBOLS.map(s => s.symbol);
 
 const Index = () => {
   const [selectedSymbol, setSelectedSymbol] = useState("BTC/USD");
   const [selectedTimeframe, setSelectedTimeframe] = useState("1D");
   const [chartType, setChartType] = useState<"candlestick" | "line">("candlestick");
-  const [chartData, setChartData] = useState<CandlestickData<Time>[]>([]);
-  const [volumeData, setVolumeData] = useState<{ time: Time; value: number; color: string }[]>([]);
   const [activeIndicators, setActiveIndicators] = useState<IndicatorType[]>(["volume"]);
   const [isMultiChartView, setIsMultiChartView] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [useLiveData, setUseLiveData] = useState(true);
   const [indicatorParameters, setIndicatorParameters] = useState<IndicatorParameters>({
     rsi: { period: 14 },
     macd: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
     bollinger: { period: 20, stdDev: 2 },
   });
+
+  // Fetch market data
+  const { chartData, volumeData, quote, isLoading, error, refetch } = useMarketData(
+    selectedSymbol,
+    selectedTimeframe,
+    useLiveData
+  );
 
   // Drawing tools
   const {
@@ -48,22 +59,6 @@ const Index = () => {
     setSelectedDrawingId,
     selectedDrawingId,
   } = useChartDrawings({ chartId: `main-${selectedSymbol}` });
-
-  useEffect(() => {
-    const basePrice = selectedSymbol.includes("BTC")
-      ? 45000
-      : selectedSymbol.includes("ETH")
-      ? 3000
-      : selectedSymbol.includes("SOL")
-      ? 100
-      : 150;
-
-    const data = generateCandlestickData(100, basePrice);
-    const volume = generateVolumeData(data);
-
-    setChartData(data);
-    setVolumeData(volume);
-  }, [selectedSymbol, selectedTimeframe]);
 
   // Keyboard shortcuts for drawing tools
   useEffect(() => {
@@ -93,7 +88,51 @@ const Index = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectTool]);
 
-  const stats = getMarketStats(chartData);
+  // Show toast on data errors
+  useEffect(() => {
+    if (error) {
+      toast.warning(error);
+    }
+  }, [error]);
+
+  // Calculate stats from quote or chart data
+  const stats = useMemo(() => {
+    if (quote) {
+      return {
+        price: quote.price,
+        change: quote.change,
+        changePercent: quote.changePercent,
+        high24h: quote.high,
+        low24h: quote.low,
+        volume24h: quote.volume,
+      };
+    }
+
+    // Fallback to chart data stats
+    if (chartData.length === 0) {
+      return {
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        high24h: 0,
+        low24h: 0,
+        volume24h: 0,
+      };
+    }
+
+    const latest = chartData[chartData.length - 1];
+    const previous = chartData.length > 1 ? chartData[chartData.length - 2] : latest;
+    const last24h = chartData.slice(-24);
+
+    return {
+      price: latest.close,
+      change: latest.close - previous.close,
+      changePercent: ((latest.close - previous.close) / previous.close) * 100,
+      high24h: Math.max(...last24h.map((d) => d.high)),
+      low24h: Math.min(...last24h.map((d) => d.low)),
+      volume24h: Math.random() * 5000000000 + 1000000000,
+    };
+  }, [quote, chartData]);
 
   const indicators = useMemo(() => {
     if (chartData.length === 0) return {};
@@ -126,6 +165,11 @@ const Index = () => {
         ? prev.filter((i) => i !== indicator)
         : [...prev, indicator]
     );
+  };
+
+  const toggleLiveData = () => {
+    setUseLiveData(!useLiveData);
+    toast.info(useLiveData ? "Switched to demo data" : "Switched to live data");
   };
 
   return (
@@ -175,6 +219,45 @@ const Index = () => {
                   </div>
 
                   <div className="flex items-center gap-2 lg:flex-shrink-0">
+                    {/* Live/Demo toggle */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleLiveData}
+                      className="h-8 gap-2"
+                    >
+                      {useLiveData ? (
+                        <Wifi className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <WifiOff className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="text-xs hidden sm:inline">
+                        {useLiveData ? "Live" : "Demo"}
+                      </span>
+                    </Button>
+
+                    {/* Refresh */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetch()}
+                      disabled={isLoading}
+                      className="h-8 gap-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                    </Button>
+
+                    {/* Fullscreen */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsFullscreen(true)}
+                      className="h-8 gap-2"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                      <span className="text-xs hidden sm:inline">Fullscreen</span>
+                    </Button>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -182,7 +265,7 @@ const Index = () => {
                       className="h-8 gap-2"
                     >
                       <Grid2X2 className="h-4 w-4" />
-                      <span className="text-xs">Multi-Chart</span>
+                      <span className="text-xs hidden sm:inline">Multi-Chart</span>
                     </Button>
 
                     <IndicatorPanel
@@ -211,7 +294,12 @@ const Index = () => {
                   )}
                 </div>
 
-                <div className="bg-card rounded-xl border border-border overflow-hidden shadow-lg">
+                <div className="bg-card rounded-xl border border-border overflow-hidden shadow-lg relative">
+                  {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                      <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  )}
                   {chartData.length > 0 && (
                     <ChartWithDrawings
                       data={chartData}
@@ -237,6 +325,35 @@ const Index = () => {
             )}
           </div>
         </div>
+
+        {/* Fullscreen Chart Overlay */}
+        {isFullscreen && chartData.length > 0 && (
+          <FullscreenChart
+            data={chartData}
+            volumeData={volumeData}
+            chartType={chartType}
+            showVolume={activeIndicators.includes("volume")}
+            rsiData={indicators.rsi}
+            macdData={indicators.macd}
+            bollingerData={indicators.bollinger}
+            symbol={selectedSymbol}
+            timeframe={selectedTimeframe}
+            drawings={drawings}
+            currentDrawing={currentDrawing}
+            activeDrawingTool={activeDrawingTool}
+            isDrawing={isDrawing}
+            onDrawingStart={startDrawing}
+            onDrawingUpdate={updateCurrentDrawing}
+            onDrawingEnd={finishDrawing}
+            onDrawingSelect={setSelectedDrawingId}
+            selectedDrawingId={selectedDrawingId}
+            drawingColor={drawingColor}
+            onColorChange={setDrawingColor}
+            onSelectTool={selectTool}
+            onClearAll={clearAllDrawings}
+            onClose={() => setIsFullscreen(false)}
+          />
+        )}
       </SidebarProvider>
     </TooltipProvider>
   );

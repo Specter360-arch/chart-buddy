@@ -39,6 +39,7 @@ interface ChartWithDrawingsProps {
   onDrawingEnd: () => void;
   onDrawingSelect?: (id: string | null) => void;
   selectedDrawingId?: string | null;
+  fullscreen?: boolean;
 }
 
 export const ChartWithDrawings = ({
@@ -58,6 +59,7 @@ export const ChartWithDrawings = ({
   onDrawingEnd,
   onDrawingSelect,
   selectedDrawingId,
+  fullscreen = false,
 }: ChartWithDrawingsProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -346,6 +348,7 @@ export const ChartWithDrawings = ({
 
     // Much larger heights for better candle visibility like TradingView
     const getResponsiveHeight = () => {
+      if (fullscreen) return window.innerHeight; // Full screen height
       if (window.innerWidth < 640) return 500; // mobile - increased
       if (window.innerWidth < 1024) return 600; // tablet - increased
       return 700; // desktop - significantly larger
@@ -567,7 +570,7 @@ export const ChartWithDrawings = ({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, volumeData, chartType, showVolume, rsiData, macdData, bollingerData, getChartPoint, drawOnCanvas]);
+  }, [data, volumeData, chartType, showVolume, rsiData, macdData, bollingerData, getChartPoint, drawOnCanvas, fullscreen]);
 
   // Redraw canvas when drawings change
   useEffect(() => {
