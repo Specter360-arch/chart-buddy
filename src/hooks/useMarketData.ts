@@ -4,6 +4,23 @@ import { marketDataService, MarketQuote, CandleData, TIMEFRAME_MAP } from '@/ser
 import { generateCandlestickData, generateVolumeData } from '@/utils/chartData';
 import { useWebSocketPrice, LivePrice } from './useWebSocketPrice';
 
+// Refresh intervals based on timeframe (in milliseconds)
+const REFRESH_INTERVALS: Record<string, number> = {
+  '1m': 15000,    // 15 seconds
+  '3m': 30000,    // 30 seconds
+  '5m': 45000,    // 45 seconds
+  '15m': 60000,   // 1 minute
+  '30m': 120000,  // 2 minutes
+  '45m': 180000,  // 3 minutes
+  '1H': 300000,   // 5 minutes
+  '2H': 600000,   // 10 minutes
+  '4H': 900000,   // 15 minutes
+  '8H': 1800000,  // 30 minutes
+  '1D': 3600000,  // 1 hour
+  '1W': 14400000, // 4 hours
+  '1M': 43200000, // 12 hours
+};
+
 interface UseMarketDataResult {
   chartData: CandlestickData<Time>[];
   volumeData: { time: Time; value: number; color: string }[];
@@ -149,7 +166,20 @@ export const useMarketData = (
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh quote every 30 seconds for live data (fallback if WebSocket fails)
+  // Auto-refresh data based on timeframe
+  useEffect(() => {
+    if (!useLiveData) return;
+
+    const refreshInterval = REFRESH_INTERVALS[timeframe] || 60000;
+    
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, refreshInterval);
+
+    return () => clearInterval(intervalId);
+  }, [timeframe, useLiveData, fetchData]);
+
+  // Fallback quote refresh if WebSocket disconnects
   useEffect(() => {
     if (!useLiveData || isConnected) return;
 
