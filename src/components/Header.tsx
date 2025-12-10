@@ -1,7 +1,16 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { BarChart3, CandlestickChart } from "lucide-react";
+import { BarChart3, CandlestickChart, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { TIMEFRAME_GROUPS } from "@/services/marketData";
 
 interface HeaderProps {
   selectedSymbol: string;
@@ -13,7 +22,16 @@ interface HeaderProps {
 }
 
 const symbols = ["BTC/USD", "ETH/USD", "SOL/USD", "AAPL", "GOOGL", "TSLA"];
-const timeframes = ["1m", "5m", "15m", "1h", "4h", "1D"];
+
+// Quick access timeframes (shown as buttons)
+const quickTimeframes = ["1m", "5m", "15m", "1H", "4H", "1D"];
+
+// All timeframes for dropdown
+const allTimeframes = [
+  ...TIMEFRAME_GROUPS.minutes,
+  ...TIMEFRAME_GROUPS.hours,
+  ...TIMEFRAME_GROUPS.days,
+];
 
 export const Header = ({
   selectedSymbol,
@@ -23,6 +41,8 @@ export const Header = ({
   chartType,
   onChartTypeChange,
 }: HeaderProps) => {
+  const isQuickTimeframe = quickTimeframes.includes(selectedTimeframe);
+
   return (
     <header className="border-b border-border bg-card">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-3 sm:px-4 lg:px-6 py-3">
@@ -48,7 +68,7 @@ export const Header = ({
 
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 lg:pb-0">
           <div className="flex gap-0.5 sm:gap-1 bg-secondary rounded-md p-0.5 sm:p-1 shrink-0">
-            {timeframes.map((tf) => (
+            {quickTimeframes.map((tf) => (
               <Button
                 key={tf}
                 variant={selectedTimeframe === tf ? "default" : "ghost"}
@@ -59,6 +79,60 @@ export const Header = ({
                 {tf}
               </Button>
             ))}
+            
+            {/* More timeframes dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={!isQuickTimeframe ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1"
+                >
+                  {!isQuickTimeframe ? selectedTimeframe : "More"}
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Minutes
+                </DropdownMenuLabel>
+                {TIMEFRAME_GROUPS.minutes.map((tf) => (
+                  <DropdownMenuItem
+                    key={tf}
+                    onClick={() => onTimeframeChange(tf)}
+                    className={selectedTimeframe === tf ? "bg-primary/10" : ""}
+                  >
+                    {tf}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Hours
+                </DropdownMenuLabel>
+                {TIMEFRAME_GROUPS.hours.map((tf) => (
+                  <DropdownMenuItem
+                    key={tf}
+                    onClick={() => onTimeframeChange(tf)}
+                    className={selectedTimeframe === tf ? "bg-primary/10" : ""}
+                  >
+                    {tf}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Days
+                </DropdownMenuLabel>
+                {TIMEFRAME_GROUPS.days.map((tf) => (
+                  <DropdownMenuItem
+                    key={tf}
+                    onClick={() => onTimeframeChange(tf)}
+                    className={selectedTimeframe === tf ? "bg-primary/10" : ""}
+                  >
+                    {tf}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="flex gap-0.5 sm:gap-1 bg-secondary rounded-md p-0.5 sm:p-1 shrink-0">

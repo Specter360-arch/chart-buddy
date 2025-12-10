@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CandlestickData, Time } from 'lightweight-charts';
 import { marketDataService, MarketQuote, CandleData, TIMEFRAME_MAP } from '@/services/marketData';
 import { generateCandlestickData, generateVolumeData } from '@/utils/chartData';
+import { useWebSocketPrice, LivePrice } from './useWebSocketPrice';
 
 interface UseMarketDataResult {
   chartData: CandlestickData<Time>[];
   volumeData: { time: Time; value: number; color: string }[];
   quote: MarketQuote | null;
+  livePrice: LivePrice | null;
   isLoading: boolean;
+  isConnected: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
@@ -22,6 +25,35 @@ export const useMarketData = (
   const [quote, setQuote] = useState<MarketQuote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // WebSocket for real-time price updates
+  const { livePrice, isConnected } = useWebSocketPrice(symbol, useLiveData);
+
+  // Update latest candle with live price
+  useEffect(() => {
+    if (!livePrice || chartData.length === 0) return;
+
+    setChartData(prevData => {
+      const newData = [...prevData];
+      const lastCandle = { ...newData[newData.length - 1] };
+      
+      // Update the last candle with live price
+      lastCandle.close = livePrice.price;
+      lastCandle.high = Math.max(lastCandle.high, livePrice.price);
+      lastCandle.low = Math.min(lastCandle.low, livePrice.price);
+      
+      newData[newData.length - 1] = lastCandle;
+      return newData;
+    });
+
+    // Also update quote price
+    setQuote(prev => prev ? {
+      ...prev,
+      price: livePrice.price,
+      change: livePrice.price - prev.previousClose,
+      changePercent: ((livePrice.price - prev.previousClose) / prev.previousClose) * 100,
+    } : null);
+  }, [livePrice]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -108,9 +140,9 @@ export const useMarketData = (
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh quote every 30 seconds for live data
+  // Auto-refresh quote every 30 seconds for live data (fallback if WebSocket fails)
   useEffect(() => {
-    if (!useLiveData) return;
+    if (!useLiveData || isConnected) return;
 
     const intervalId = setInterval(async () => {
       const newQuote = await marketDataService.getQuote(symbol);
@@ -120,13 +152,15 @@ export const useMarketData = (
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [symbol, useLiveData]);
+  }, [symbol, useLiveData, isConnected]);
 
   return {
     chartData,
     volumeData,
     quote,
+    livePrice,
     isLoading,
+    isConnected,
     error,
     refetch: fetchData,
   };
