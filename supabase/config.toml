@@ -1,4 +1,7 @@
 project_id = "mdwulnqptzyzbuwwtcnr"
 
+[functions.market-data-ws]
+verify_jwt = false
+
 [functions.market-data]
 verify_jwt = false

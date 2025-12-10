@@ -12,7 +12,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
 import { CandlestickData, Time } from "lightweight-charts";
-import { Grid2X2, Maximize2, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { Grid2X2, Maximize2, RefreshCw, Wifi, WifiOff, Radio } from "lucide-react";
 import { useChartDrawings } from "@/hooks/useChartDrawings";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMarketData } from "@/hooks/useMarketData";
@@ -37,7 +37,7 @@ const Index = () => {
   });
 
   // Fetch market data
-  const { chartData, volumeData, quote, isLoading, error, refetch } = useMarketData(
+  const { chartData, volumeData, quote, livePrice, isLoading, isConnected, error, refetch } = useMarketData(
     selectedSymbol,
     selectedTimeframe,
     useLiveData
@@ -95,15 +95,22 @@ const Index = () => {
     }
   }, [error]);
 
-  // Calculate stats from quote or chart data
+  // Calculate stats from quote or chart data, using live price if available
   const stats = useMemo(() => {
+    // Use live price if available
+    const currentPrice = livePrice?.price || quote?.price;
+    
     if (quote) {
+      const price = currentPrice || quote.price;
+      const change = price - quote.previousClose;
+      const changePercent = (change / quote.previousClose) * 100;
+      
       return {
-        price: quote.price,
-        change: quote.change,
-        changePercent: quote.changePercent,
-        high24h: quote.high,
-        low24h: quote.low,
+        price,
+        change,
+        changePercent,
+        high24h: Math.max(quote.high, price),
+        low24h: Math.min(quote.low, price),
         volume24h: quote.volume,
       };
     }
@@ -123,16 +130,17 @@ const Index = () => {
     const latest = chartData[chartData.length - 1];
     const previous = chartData.length > 1 ? chartData[chartData.length - 2] : latest;
     const last24h = chartData.slice(-24);
+    const price = currentPrice || latest.close;
 
     return {
-      price: latest.close,
-      change: latest.close - previous.close,
-      changePercent: ((latest.close - previous.close) / previous.close) * 100,
+      price,
+      change: price - previous.close,
+      changePercent: ((price - previous.close) / previous.close) * 100,
       high24h: Math.max(...last24h.map((d) => d.high)),
       low24h: Math.min(...last24h.map((d) => d.low)),
       volume24h: Math.random() * 5000000000 + 1000000000,
     };
-  }, [quote, chartData]);
+  }, [quote, chartData, livePrice]);
 
   const indicators = useMemo(() => {
     if (chartData.length === 0) return {};
@@ -219,7 +227,7 @@ const Index = () => {
                   </div>
 
                   <div className="flex items-center gap-2 lg:flex-shrink-0">
-                    {/* Live/Demo toggle */}
+                    {/* Live/Demo toggle with connection status */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -227,12 +235,16 @@ const Index = () => {
                       className="h-8 gap-2"
                     >
                       {useLiveData ? (
-                        <Wifi className="h-4 w-4 text-green-500" />
+                        isConnected ? (
+                          <Radio className="h-4 w-4 text-green-500 animate-pulse" />
+                        ) : (
+                          <Wifi className="h-4 w-4 text-yellow-500" />
+                        )
                       ) : (
                         <WifiOff className="h-4 w-4 text-muted-foreground" />
                       )}
                       <span className="text-xs hidden sm:inline">
-                        {useLiveData ? "Live" : "Demo"}
+                        {useLiveData ? (isConnected ? "Live" : "Connecting...") : "Demo"}
                       </span>
                     </Button>
 

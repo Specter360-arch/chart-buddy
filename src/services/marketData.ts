@@ -80,14 +80,25 @@ export const ALL_SYMBOLS = [
 // Map timeframe to Twelvedata intervals
 export const TIMEFRAME_MAP: Record<string, string> = {
   '1m': '1min',
+  '3m': '3min',
   '5m': '5min',
   '15m': '15min',
   '30m': '30min',
+  '45m': '45min',
   '1H': '1h',
+  '2H': '2h',
   '4H': '4h',
+  '8H': '8h',
   '1D': '1day',
   '1W': '1week',
   '1M': '1month',
+};
+
+// Available timeframes grouped for UI
+export const TIMEFRAME_GROUPS = {
+  minutes: ['1m', '3m', '5m', '15m', '30m', '45m'],
+  hours: ['1H', '2H', '4H', '8H'],
+  days: ['1D', '1W', '1M'],
 };
 
 export const marketDataService = {
