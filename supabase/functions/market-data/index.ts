@@ -100,22 +100,52 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Transform data to our format
-      const candleData = data.values?.map((v) => ({
-        time: v.datetime.split(' ')[0], // Get date part only
-        open: parseFloat(v.open),
-        high: parseFloat(v.high),
-        low: parseFloat(v.low),
-        close: parseFloat(v.close),
-        volume: v.volume ? parseFloat(v.volume) : 0,
-      })).reverse(); // Reverse to get chronological order
+      // Determine if intraday based on interval
+      const intradayIntervals = ['1min', '3min', '5min', '15min', '30min', '45min', '1h', '2h', '4h', '8h'];
+      const isIntraday = intradayIntervals.includes(timeInterval);
 
-      console.log(`Time series fetched for ${symbol}: ${candleData?.length || 0} candles`);
+      // Transform data to our format with proper timestamps
+      const candleData = data.values?.map((v) => {
+        let time: string | number;
+        
+        if (isIntraday) {
+          // For intraday, use Unix timestamp (seconds)
+          // Twelvedata returns datetime like "2024-01-15 09:30:00"
+          const dateStr = v.datetime.includes('T') ? v.datetime : v.datetime.replace(' ', 'T');
+          const date = new Date(dateStr);
+          time = Math.floor(date.getTime() / 1000);
+        } else {
+          // For daily and above, use date string (YYYY-MM-DD format)
+          time = v.datetime.split(' ')[0];
+        }
+        
+        return {
+          time,
+          open: parseFloat(v.open),
+          high: parseFloat(v.high),
+          low: parseFloat(v.low),
+          close: parseFloat(v.close),
+          volume: v.volume ? parseFloat(v.volume) : 0,
+        };
+      }).reverse(); // Reverse to get chronological order
+      
+      // Filter out any duplicate timestamps
+      const seenTimes = new Set<string | number>();
+      const uniqueData = candleData?.filter((candle: any) => {
+        if (seenTimes.has(candle.time)) {
+          return false;
+        }
+        seenTimes.add(candle.time);
+        return true;
+      });
+
+      console.log(`Time series fetched for ${symbol}: ${uniqueData?.length || 0} candles (isIntraday: ${isIntraday})`);
       return new Response(
         JSON.stringify({ 
           success: true, 
-          data: candleData,
-          meta: data.meta
+          data: uniqueData,
+          meta: data.meta,
+          isIntraday
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

@@ -29,15 +29,24 @@ export const useMarketData = (
   // WebSocket for real-time price updates
   const { livePrice, isConnected } = useWebSocketPrice(symbol, useLiveData);
 
+  // Track last processed price to avoid unnecessary updates
+  const lastProcessedPrice = useRef<number | null>(null);
+
   // Update latest candle with live price
   useEffect(() => {
     if (!livePrice || chartData.length === 0) return;
+    
+    // Avoid duplicate updates for same price
+    if (lastProcessedPrice.current === livePrice.price) return;
+    lastProcessedPrice.current = livePrice.price;
 
     setChartData(prevData => {
+      if (prevData.length === 0) return prevData;
+      
       const newData = [...prevData];
       const lastCandle = { ...newData[newData.length - 1] };
       
-      // Update the last candle with live price
+      // Update the last candle with live price - keep the same time
       lastCandle.close = livePrice.price;
       lastCandle.high = Math.max(lastCandle.high, livePrice.price);
       lastCandle.low = Math.min(lastCandle.low, livePrice.price);
@@ -53,7 +62,7 @@ export const useMarketData = (
       change: livePrice.price - prev.previousClose,
       changePercent: ((livePrice.price - prev.previousClose) / prev.previousClose) * 100,
     } : null);
-  }, [livePrice]);
+  }, [livePrice, chartData.length]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);

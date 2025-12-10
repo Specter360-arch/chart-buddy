@@ -165,14 +165,28 @@ export const marketDataService = {
         return null;
       }
 
-      const candles: CandleData[] = data.data.map((d: any) => ({
-        time: d.time as Time,
-        open: d.open,
-        high: d.high,
-        low: d.low,
-        close: d.close,
-        volume: d.volume,
-      }));
+      // Ensure data is sorted by time and deduplicated
+      const uniqueCandles = new Map<string | number, CandleData>();
+      
+      data.data.forEach((d: any) => {
+        const timeKey = typeof d.time === 'number' ? d.time : String(d.time);
+        // Keep the latest data for each timestamp
+        uniqueCandles.set(timeKey, {
+          time: d.time as Time,
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+          volume: d.volume,
+        });
+      });
+
+      // Sort by time ascending
+      const candles: CandleData[] = Array.from(uniqueCandles.values()).sort((a, b) => {
+        const timeA = typeof a.time === 'number' ? a.time : new Date(a.time as string).getTime();
+        const timeB = typeof b.time === 'number' ? b.time : new Date(b.time as string).getTime();
+        return timeA - timeB;
+      });
 
       return { candles, meta: data.meta };
     } catch (error) {
