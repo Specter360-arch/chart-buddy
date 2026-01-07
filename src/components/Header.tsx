@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TIMEFRAME_GROUPS } from "@/services/marketData";
+import { TIMEFRAME_GROUPS, ALL_SYMBOLS } from "@/services/marketData";
 
 interface HeaderProps {
   selectedSymbol: string;
@@ -20,8 +20,6 @@ interface HeaderProps {
   chartType: "candlestick" | "line";
   onChartTypeChange: (type: "candlestick" | "line") => void;
 }
-
-const symbols = ["BTC/USD", "ETH/USD", "SOL/USD", "AAPL", "GOOGL", "TSLA"];
 
 // Quick access timeframes (shown as buttons)
 const quickTimeframes = ["1m", "5m", "15m", "1H", "4H", "1D"];
@@ -57,9 +55,9 @@ export const Header = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {symbols.map((symbol) => (
-                <SelectItem key={symbol} value={symbol}>
-                  {symbol}
+              {ALL_SYMBOLS.map((item) => (
+                <SelectItem key={item.symbol} value={item.symbol}>
+                  {item.symbol}
                 </SelectItem>
               ))}
             </SelectContent>
