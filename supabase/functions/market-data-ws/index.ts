@@ -57,8 +57,9 @@ Deno.serve(async (req) => {
     // Fetch price immediately
     fetchAndSendPrice();
     
-    // Then poll every 5 seconds (Twelvedata free tier rate limit)
-    intervalId = setInterval(fetchAndSendPrice, 5000);
+    // Poll every 8 seconds to stay within free tier limits (8 credits/min)
+    // This gives ~7-8 updates per minute, within the limit
+    intervalId = setInterval(fetchAndSendPrice, 8000);
   };
 
   async function fetchAndSendPrice() {

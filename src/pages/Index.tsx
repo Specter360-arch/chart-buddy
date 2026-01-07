@@ -8,6 +8,7 @@ import { IndicatorParameters } from "@/components/IndicatorSettings";
 import { WatchlistSidebar } from "@/components/WatchlistSidebar";
 import { MultiChartLayout } from "@/components/MultiChartLayout";
 import { FullscreenChart } from "@/components/FullscreenChart";
+import { LivePriceIndicator } from "@/components/LivePriceIndicator";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
@@ -24,7 +25,7 @@ const availableSymbols = ALL_SYMBOLS.map(s => s.symbol);
 
 const Index = () => {
   const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
-  const [selectedTimeframe, setSelectedTimeframe] = useState("1D");
+  const [selectedTimeframe, setSelectedTimeframe] = useState("1m");
   const [chartType, setChartType] = useState<"candlestick" | "line">("candlestick");
   const [activeIndicators, setActiveIndicators] = useState<IndicatorType[]>(["volume"]);
   const [isMultiChartView, setIsMultiChartView] = useState(false);
@@ -312,6 +313,16 @@ const Index = () => {
                       <RefreshCw className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   )}
+                  
+                  {/* Live Price Overlay */}
+                  {useLiveData && (
+                    <LivePriceIndicator
+                      livePrice={livePrice}
+                      isConnected={isConnected}
+                      previousPrice={quote?.previousClose}
+                    />
+                  )}
+                  
                   {chartData.length > 0 && (
                     <ChartWithDrawings
                       data={chartData}
