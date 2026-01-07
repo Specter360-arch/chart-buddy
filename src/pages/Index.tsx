@@ -16,14 +16,14 @@ import { Grid2X2, Maximize2, RefreshCw, Wifi, WifiOff, Radio } from "lucide-reac
 import { useChartDrawings } from "@/hooks/useChartDrawings";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMarketData } from "@/hooks/useMarketData";
-import { ALL_SYMBOLS, MARKET_SYMBOLS } from "@/services/marketData";
+import { ALL_SYMBOLS, DEFAULT_SYMBOL } from "@/services/marketData";
 import { toast } from "sonner";
 
 // Get all symbol names for the UI
 const availableSymbols = ALL_SYMBOLS.map(s => s.symbol);
 
 const Index = () => {
-  const [selectedSymbol, setSelectedSymbol] = useState("BTC/USD");
+  const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
   const [selectedTimeframe, setSelectedTimeframe] = useState("1D");
   const [chartType, setChartType] = useState<"candlestick" | "line">("candlestick");
   const [activeIndicators, setActiveIndicators] = useState<IndicatorType[]>(["volume"]);

@@ -5,6 +5,11 @@ export interface LivePrice {
   symbol: string;
   price: number;
   timestamp: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  change?: number;
+  changePercent?: number;
   bid?: number;
   ask?: number;
 }
@@ -58,6 +63,11 @@ export const useWebSocketPrice = (
               symbol: data.symbol,
               price: data.price,
               timestamp: data.timestamp || Date.now(),
+              open: data.open,
+              high: data.high,
+              low: data.low,
+              change: data.change,
+              changePercent: data.changePercent,
               bid: data.bid,
               ask: data.ask,
             });
