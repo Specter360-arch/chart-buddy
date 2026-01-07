@@ -5,20 +5,21 @@ import { generateCandlestickData, generateVolumeData } from '@/utils/chartData';
 import { useWebSocketPrice, LivePrice } from './useWebSocketPrice';
 
 // Refresh intervals based on timeframe (in milliseconds)
+// Lower timeframes get faster refresh rates
 const REFRESH_INTERVALS: Record<string, number> = {
-  '1m': 15000,    // 15 seconds
-  '3m': 30000,    // 30 seconds
-  '5m': 45000,    // 45 seconds
-  '15m': 60000,   // 1 minute
-  '30m': 120000,  // 2 minutes
-  '45m': 180000,  // 3 minutes
-  '1H': 300000,   // 5 minutes
-  '2H': 600000,   // 10 minutes
-  '4H': 900000,   // 15 minutes
-  '8H': 1800000,  // 30 minutes
-  '1D': 3600000,  // 1 hour
-  '1W': 14400000, // 4 hours
-  '1M': 43200000, // 12 hours
+  '1m': 10000,    // 10 seconds - fastest for 1min candles
+  '3m': 20000,    // 20 seconds
+  '5m': 30000,    // 30 seconds
+  '15m': 45000,   // 45 seconds
+  '30m': 60000,   // 1 minute
+  '45m': 90000,   // 1.5 minutes
+  '1H': 120000,   // 2 minutes
+  '2H': 300000,   // 5 minutes
+  '4H': 600000,   // 10 minutes
+  '8H': 900000,   // 15 minutes
+  '1D': 1800000,  // 30 minutes
+  '1W': 3600000,  // 1 hour
+  '1M': 7200000,  // 2 hours
 };
 
 interface UseMarketDataResult {
