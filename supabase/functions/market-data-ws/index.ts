@@ -65,14 +65,15 @@ Deno.serve(async (req) => {
     if (!isOpen) return;
     
     try {
+      // Use quote endpoint for more comprehensive real-time data
       const response = await fetch(
-        `https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbol)}&apikey=${apiKey}`
+        `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${apiKey}`
       );
       
       const data = await response.json();
       
       if (data.status === 'error') {
-        console.error('Twelvedata price error:', data);
+        console.error('Twelvedata quote error:', data);
         socket.send(JSON.stringify({ 
           type: 'error', 
           message: data.message || 'Failed to fetch price' 
@@ -80,16 +81,26 @@ Deno.serve(async (req) => {
         return;
       }
 
-      const price = parseFloat(data.price);
+      const price = parseFloat(data.close);
+      const open = parseFloat(data.open);
+      const high = parseFloat(data.high);
+      const low = parseFloat(data.low);
+      const change = parseFloat(data.change);
+      const changePercent = parseFloat(data.percent_change);
       
       if (!isNaN(price)) {
         socket.send(JSON.stringify({
           type: 'price',
           symbol,
           price,
+          open,
+          high,
+          low,
+          change,
+          changePercent,
           timestamp: Date.now(),
         }));
-        console.log(`Price sent for ${symbol}: ${price}`);
+        console.log(`Live quote sent for ${symbol}: ${price} (change: ${change})`);
       }
     } catch (error) {
       console.error('Error fetching price:', error);

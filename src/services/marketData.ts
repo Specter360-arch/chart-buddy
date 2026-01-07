@@ -17,65 +17,23 @@ export interface CandleData extends CandlestickData<Time> {
   volume?: number;
 }
 
-// Major trading pairs organized by category
+// Primary trading pairs - Twelvedata compatible symbols
+// These are the main instruments for our trading platform
 export const MARKET_SYMBOLS = {
   forex: [
+    { symbol: 'XAU/USD', name: 'Gold / US Dollar' },
     { symbol: 'EUR/USD', name: 'Euro / US Dollar' },
     { symbol: 'GBP/USD', name: 'British Pound / US Dollar' },
     { symbol: 'USD/JPY', name: 'US Dollar / Japanese Yen' },
-    { symbol: 'USD/CHF', name: 'US Dollar / Swiss Franc' },
     { symbol: 'AUD/USD', name: 'Australian Dollar / US Dollar' },
-    { symbol: 'USD/CAD', name: 'US Dollar / Canadian Dollar' },
-    { symbol: 'NZD/USD', name: 'New Zealand Dollar / US Dollar' },
-    { symbol: 'EUR/GBP', name: 'Euro / British Pound' },
-    { symbol: 'EUR/JPY', name: 'Euro / Japanese Yen' },
-    { symbol: 'GBP/JPY', name: 'British Pound / Japanese Yen' },
-  ],
-  crypto: [
-    { symbol: 'BTC/USD', name: 'Bitcoin / US Dollar' },
-    { symbol: 'ETH/USD', name: 'Ethereum / US Dollar' },
-    { symbol: 'SOL/USD', name: 'Solana / US Dollar' },
-    { symbol: 'XRP/USD', name: 'Ripple / US Dollar' },
-    { symbol: 'ADA/USD', name: 'Cardano / US Dollar' },
-    { symbol: 'DOGE/USD', name: 'Dogecoin / US Dollar' },
-    { symbol: 'DOT/USD', name: 'Polkadot / US Dollar' },
-    { symbol: 'AVAX/USD', name: 'Avalanche / US Dollar' },
-    { symbol: 'LINK/USD', name: 'Chainlink / US Dollar' },
-    { symbol: 'MATIC/USD', name: 'Polygon / US Dollar' },
-  ],
-  stocks: [
-    { symbol: 'AAPL', name: 'Apple Inc.' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.' },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation' },
-    { symbol: 'TSLA', name: 'Tesla Inc.' },
-    { symbol: 'META', name: 'Meta Platforms Inc.' },
-    { symbol: 'JPM', name: 'JPMorgan Chase & Co.' },
-    { symbol: 'V', name: 'Visa Inc.' },
-    { symbol: 'JNJ', name: 'Johnson & Johnson' },
-  ],
-  etfs: [
-    { symbol: 'SPY', name: 'SPDR S&P 500 ETF' },
-    { symbol: 'QQQ', name: 'Invesco QQQ Trust' },
-    { symbol: 'DIA', name: 'SPDR Dow Jones Industrial Average ETF' },
-    { symbol: 'IWM', name: 'iShares Russell 2000 ETF' },
-    { symbol: 'VTI', name: 'Vanguard Total Stock Market ETF' },
-    { symbol: 'GLD', name: 'SPDR Gold Shares' },
-    { symbol: 'SLV', name: 'iShares Silver Trust' },
-    { symbol: 'USO', name: 'United States Oil Fund' },
-    { symbol: 'XLF', name: 'Financial Select Sector SPDR Fund' },
-    { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund' },
   ],
 };
 
-// Flatten all symbols for easy access
-export const ALL_SYMBOLS = [
-  ...MARKET_SYMBOLS.forex,
-  ...MARKET_SYMBOLS.crypto,
-  ...MARKET_SYMBOLS.stocks,
-  ...MARKET_SYMBOLS.etfs,
-];
+// Primary symbols array - these are the main trading instruments
+export const ALL_SYMBOLS = [...MARKET_SYMBOLS.forex];
+
+// Default symbol for the platform
+export const DEFAULT_SYMBOL = 'XAU/USD';
 
 // Map timeframe to Twelvedata intervals
 export const TIMEFRAME_MAP: Record<string, string> = {
@@ -255,11 +213,8 @@ export const marketDataService = {
   },
 
   // Get symbol category
-  getSymbolCategory(symbol: string): 'forex' | 'crypto' | 'stocks' | 'etfs' | null {
+  getSymbolCategory(symbol: string): 'forex' | null {
     if (MARKET_SYMBOLS.forex.some(s => s.symbol === symbol)) return 'forex';
-    if (MARKET_SYMBOLS.crypto.some(s => s.symbol === symbol)) return 'crypto';
-    if (MARKET_SYMBOLS.stocks.some(s => s.symbol === symbol)) return 'stocks';
-    if (MARKET_SYMBOLS.etfs.some(s => s.symbol === symbol)) return 'etfs';
     return null;
   },
 
