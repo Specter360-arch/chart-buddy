@@ -60,10 +60,13 @@ export const WatchlistSidebar = ({
         console.error("Failed to load watchlist", e);
       }
     } else {
-      // Default watchlist
+      // Default watchlist - use our 5 forex pairs
       setWatchlist([
-        { symbol: "BTC/USD" },
-        { symbol: "ETH/USD" },
+        { symbol: "XAU/USD" },
+        { symbol: "EUR/USD" },
+        { symbol: "GBP/USD" },
+        { symbol: "USD/JPY" },
+        { symbol: "AUD/USD" },
       ]);
     }
   }, []);
