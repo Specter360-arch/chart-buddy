@@ -87,16 +87,18 @@ export const useMarketData = (
     setError(null);
 
     if (!useLiveData) {
-      // Use generated demo data
-      const basePrice = symbol.includes('BTC')
-        ? 45000
-        : symbol.includes('ETH')
-        ? 3000
-        : symbol.includes('SOL')
-        ? 100
-        : symbol.includes('EUR') || symbol.includes('GBP')
-        ? 1.1
-        : 150;
+      // Use generated demo data - base prices for our 5 forex pairs
+      const basePrice = symbol.includes('XAU')
+        ? 2650
+        : symbol.includes('EUR')
+        ? 1.08
+        : symbol.includes('GBP')
+        ? 1.27
+        : symbol.includes('JPY')
+        ? 157
+        : symbol.includes('AUD')
+        ? 0.62
+        : 1.0;
 
       const data = generateCandlestickData(100, basePrice);
       const volume = generateVolumeData(data);
@@ -131,13 +133,17 @@ export const useMarketData = (
       } else {
         // Fallback to demo data if API fails
         console.log('Using demo data as fallback');
-        const basePrice = symbol.includes('BTC')
-          ? 45000
-          : symbol.includes('ETH')
-          ? 3000
-          : symbol.includes('SOL')
-          ? 100
-          : 150;
+        const basePrice = symbol.includes('XAU')
+          ? 2650
+          : symbol.includes('EUR')
+          ? 1.08
+          : symbol.includes('GBP')
+          ? 1.27
+          : symbol.includes('JPY')
+          ? 157
+          : symbol.includes('AUD')
+          ? 0.62
+          : 1.0;
         const data = generateCandlestickData(100, basePrice);
         const volume = generateVolumeData(data);
         setChartData(data);

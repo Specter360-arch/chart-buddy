@@ -24,7 +24,7 @@ interface MultiChartLayoutProps {
 export const MultiChartLayout = ({
   availableSymbols,
   onExitMultiView,
-  initialSymbol = "BTC/USD",
+  initialSymbol = "XAU/USD",
 }: MultiChartLayoutProps) => {
   const [charts, setCharts] = useState<ChartConfig[]>([]);
   const [gridLayout, setGridLayout] = useState<"1x1" | "2x2" | "3x3">("2x2");
@@ -59,9 +59,9 @@ export const MultiChartLayout = ({
   const initializeDefaultCharts = () => {
     setCharts([
       { id: crypto.randomUUID(), symbol: initialSymbol },
-      { id: crypto.randomUUID(), symbol: "ETH/USD" },
-      { id: crypto.randomUUID(), symbol: "SOL/USD" },
-      { id: crypto.randomUUID(), symbol: "AAPL" },
+      { id: crypto.randomUUID(), symbol: "EUR/USD" },
+      { id: crypto.randomUUID(), symbol: "GBP/USD" },
+      { id: crypto.randomUUID(), symbol: "USD/JPY" },
     ]);
   };
 
