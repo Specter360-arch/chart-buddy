@@ -65,6 +65,10 @@ export const ChartWithDrawings = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const indicatorSeriesRef = useRef<Map<string, ISeriesApi<any>>>(new Map());
+  const chartTypeRef = useRef(chartType);
+  const isInitializedRef = useRef(false);
   
   // Use refs to avoid stale closures in event handlers
   const activeDrawingToolRef = useRef(activeDrawingTool);
@@ -126,12 +130,10 @@ export const ChartWithDrawings = ({
     // Helper to draw handles/control points
     const drawHandle = (x: number, y: number, isActive: boolean = false) => {
       ctx.save();
-      // Outer ring
       ctx.beginPath();
       ctx.arc(x, y, isActive ? 8 : 6, 0, Math.PI * 2);
       ctx.fillStyle = isActive ? "rgba(34, 197, 94, 0.3)" : "rgba(255, 255, 255, 0.2)";
       ctx.fill();
-      // Inner circle
       ctx.beginPath();
       ctx.arc(x, y, isActive ? 5 : 4, 0, Math.PI * 2);
       ctx.fillStyle = isActive ? "#22c55e" : "#ffffff";
@@ -150,14 +152,12 @@ export const ChartWithDrawings = ({
         y: series.priceToCoordinate(p.price),
       }));
       
-      // Filter out invalid coordinates
       if (points.some((p) => p.x === null || p.y === null)) return;
       
       const isSelected = drawing.id === selectedDrawingId;
       const isCurrentlyDrawing = drawing.id?.startsWith("drawing-") && currentDrawing?.id === drawing.id;
       const baseLineWidth = drawing.lineWidth || 2;
       
-      // Set up drawing styles - thicker lines for better visibility
       ctx.strokeStyle = drawing.color;
       ctx.lineWidth = isSelected ? baseLineWidth + 2 : baseLineWidth + 1;
       ctx.fillStyle = drawing.color;
@@ -168,7 +168,6 @@ export const ChartWithDrawings = ({
       switch (drawing.type) {
         case "trendline":
           if (points.length >= 2) {
-            // Draw glow effect for visibility
             ctx.save();
             ctx.shadowColor = drawing.color;
             ctx.shadowBlur = isSelected ? 8 : 4;
@@ -178,13 +177,11 @@ export const ChartWithDrawings = ({
             ctx.stroke();
             ctx.restore();
             
-            // Draw main line
             ctx.beginPath();
             ctx.moveTo(points[0].x!, points[0].y!);
             ctx.lineTo(points[1].x!, points[1].y!);
             ctx.stroke();
             
-            // Always draw handles for better visibility
             points.forEach((p) => {
               drawHandle(p.x!, p.y!, isSelected || isCurrentlyDrawing);
             });
@@ -195,7 +192,6 @@ export const ChartWithDrawings = ({
           if (points.length >= 1) {
             const y = points[0].y!;
             
-            // Draw glow effect
             ctx.save();
             ctx.shadowColor = drawing.color;
             ctx.shadowBlur = isSelected ? 6 : 3;
@@ -205,13 +201,11 @@ export const ChartWithDrawings = ({
             ctx.stroke();
             ctx.restore();
             
-            // Draw main line
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(canvas.width, y);
             ctx.stroke();
             
-            // Price label with better styling
             ctx.save();
             ctx.font = "bold 12px Inter, sans-serif";
             const priceText = `$${drawing.points[0].price.toFixed(2)}`;
@@ -219,18 +213,15 @@ export const ChartWithDrawings = ({
             const labelX = canvas.width - textWidth - 16;
             const labelY = y;
             
-            // Label background
             ctx.fillStyle = drawing.color;
             ctx.beginPath();
             ctx.roundRect(labelX - 4, labelY - 10, textWidth + 12, 20, 4);
             ctx.fill();
             
-            // Label text
             ctx.fillStyle = "#000000";
             ctx.fillText(priceText, labelX + 2, labelY + 4);
             ctx.restore();
             
-            // Draw handle on left
             drawHandle(40, y, isSelected || isCurrentlyDrawing);
           }
           break;
@@ -241,7 +232,6 @@ export const ChartWithDrawings = ({
             const endY = points[1].y!;
             const range = endY - startY;
             
-            // Draw fib levels
             drawing.fibLevels.forEach((level, index) => {
               const y = startY + range * (1 - level);
               const alpha = index === 0 || index === drawing.fibLevels!.length - 1 ? 1 : 0.7;
@@ -254,22 +244,18 @@ export const ChartWithDrawings = ({
               ctx.lineTo(canvas.width - 60, y);
               ctx.stroke();
               
-              // Level label with background
               ctx.font = "bold 11px Inter, sans-serif";
               const levelText = `${(level * 100).toFixed(1)}%`;
               const textWidth = ctx.measureText(levelText).width;
               
-              // Background
               ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
               ctx.fillRect(8, y - 8, textWidth + 8, 16);
               
-              // Text
               ctx.fillStyle = drawing.color;
               ctx.fillText(levelText, 12, y + 4);
               ctx.restore();
             });
             
-            // Connecting line
             ctx.save();
             ctx.setLineDash([6, 4]);
             ctx.lineWidth = 2;
@@ -282,7 +268,6 @@ export const ChartWithDrawings = ({
             ctx.setLineDash([]);
             ctx.restore();
             
-            // Draw handles
             points.forEach((p) => {
               drawHandle(p.x!, p.y!, isSelected || isCurrentlyDrawing);
             });
@@ -291,7 +276,6 @@ export const ChartWithDrawings = ({
           
         case "channel":
           if (points.length >= 2) {
-            // Draw main trendline with glow
             ctx.save();
             ctx.shadowColor = drawing.color;
             ctx.shadowBlur = isSelected ? 6 : 3;
@@ -301,13 +285,11 @@ export const ChartWithDrawings = ({
             ctx.stroke();
             ctx.restore();
             
-            // Draw main line
             ctx.beginPath();
             ctx.moveTo(points[0].x!, points[0].y!);
             ctx.lineTo(points[1].x!, points[1].y!);
             ctx.stroke();
             
-            // Draw parallel line
             if (points.length >= 3) {
               const offsetY = points[2].y! - points[0].y!;
               
@@ -316,7 +298,6 @@ export const ChartWithDrawings = ({
               ctx.lineTo(points[1].x!, points[1].y! + offsetY);
               ctx.stroke();
               
-              // Fill channel with gradient-like effect
               ctx.save();
               ctx.globalAlpha = 0.15;
               ctx.beginPath();
@@ -328,11 +309,9 @@ export const ChartWithDrawings = ({
               ctx.fill();
               ctx.restore();
               
-              // Draw handle for parallel line
               drawHandle(points[0].x!, points[0].y! + offsetY, isSelected || isCurrentlyDrawing);
             }
             
-            // Draw handles for main points
             points.slice(0, 2).forEach((p) => {
               drawHandle(p.x!, p.y!, isSelected || isCurrentlyDrawing);
             });
@@ -342,33 +321,32 @@ export const ChartWithDrawings = ({
     });
   }, [drawings, currentDrawing, selectedDrawingId]);
 
-  // Setup chart
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
+  const getResponsiveHeight = useCallback(() => {
+    if (fullscreen) return window.innerHeight;
+    if (window.innerWidth < 640) return 500;
+    if (window.innerWidth < 1024) return 600;
+    return 700;
+  }, [fullscreen]);
 
-    // Much larger heights for better candle visibility like TradingView
-    const getResponsiveHeight = () => {
-      if (fullscreen) return window.innerHeight; // Full screen height
-      if (window.innerWidth < 640) return 500; // mobile - increased
-      if (window.innerWidth < 1024) return 600; // tablet - increased
-      return 700; // desktop - significantly larger
-    };
+  // Initialize chart only once
+  useEffect(() => {
+    if (!chartContainerRef.current || isInitializedRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: getResponsiveHeight(),
       layout: {
-        background: { color: "hsl(220, 20%, 10%)" }, // Darker for better contrast
+        background: { color: "hsl(220, 20%, 10%)" },
         textColor: "hsl(210, 40%, 98%)",
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         fontSize: 12,
       },
       grid: {
-        vertLines: { color: "hsl(220, 18%, 16%)", style: 1 }, // Subtle grid
+        vertLines: { color: "hsl(220, 18%, 16%)", style: 1 },
         horzLines: { color: "hsl(220, 18%, 16%)", style: 1 },
       },
       crosshair: {
-        mode: CrosshairMode.Normal, // Always use normal mode, we'll handle drawing separately
+        mode: CrosshairMode.Normal,
         vertLine: {
           color: "hsl(180, 85%, 55%)",
           width: 1,
@@ -384,10 +362,7 @@ export const ChartWithDrawings = ({
       },
       rightPriceScale: {
         borderColor: "hsl(220, 18%, 20%)",
-        scaleMargins: {
-          top: 0.1,
-          bottom: 0.2,
-        },
+        scaleMargins: { top: 0.1, bottom: 0.2 },
         autoScale: true,
         alignLabels: true,
       },
@@ -395,15 +370,12 @@ export const ChartWithDrawings = ({
         borderColor: "hsl(220, 18%, 20%)",
         timeVisible: true,
         secondsVisible: false,
-        barSpacing: 12, // Wider bars for better visibility
+        barSpacing: 12,
         minBarSpacing: 6,
         rightOffset: 5,
       },
       handleScale: {
-        axisPressedMouseMove: {
-          time: true,
-          price: true,
-        },
+        axisPressedMouseMove: { time: true, price: true },
       },
       handleScroll: {
         mouseWheel: true,
@@ -414,24 +386,21 @@ export const ChartWithDrawings = ({
     });
 
     chartRef.current = chart;
+    isInitializedRef.current = true;
 
-    // Add main series with enhanced visibility
+    // Create main series
     if (chartType === "candlestick") {
       const candlestickSeries = chart.addSeries(CandlestickSeries, {
-        upColor: "#22c55e", // Bright green for bullish
-        downColor: "#ef4444", // Bright red for bearish
+        upColor: "#22c55e",
+        downColor: "#ef4444",
         borderVisible: true,
-        borderUpColor: "#16a34a", // Slightly darker border
+        borderUpColor: "#16a34a",
         borderDownColor: "#dc2626",
         wickUpColor: "#22c55e",
         wickDownColor: "#ef4444",
       });
-      candlestickSeries.setData(data);
       candlestickSeries.priceScale().applyOptions({
-        scaleMargins: {
-          top: 0.05,
-          bottom: 0.15, // Leave room for volume
-        },
+        scaleMargins: { top: 0.05, bottom: 0.15 },
       });
       mainSeriesRef.current = candlestickSeries;
     } else {
@@ -441,87 +410,11 @@ export const ChartWithDrawings = ({
         crosshairMarkerVisible: true,
         crosshairMarkerRadius: 4,
       });
-      lineSeries.setData(data.map((d) => ({ time: d.time, value: d.close })));
       mainSeriesRef.current = lineSeries;
     }
+    chartTypeRef.current = chartType;
 
-    // Add Bollinger Bands
-    if (bollingerData) {
-      const upperBand = chart.addSeries(LineSeries, {
-        color: "hsl(180, 85%, 55%)",
-        lineWidth: 1,
-        lineStyle: 2,
-      });
-      upperBand.setData(bollingerData.upper.filter((d) => !isNaN(d.value)));
-
-      const middleBand = chart.addSeries(LineSeries, {
-        color: "hsl(180, 85%, 55%)",
-        lineWidth: 1,
-      });
-      middleBand.setData(bollingerData.middle.filter((d) => !isNaN(d.value)));
-
-      const lowerBand = chart.addSeries(LineSeries, {
-        color: "hsl(180, 85%, 55%)",
-        lineWidth: 1,
-        lineStyle: 2,
-      });
-      lowerBand.setData(bollingerData.lower.filter((d) => !isNaN(d.value)));
-    }
-
-    // Add Volume
-    if (showVolume && volumeData && volumeData.length > 0) {
-      const volumeSeries = chart.addSeries(HistogramSeries, {
-        color: "hsl(180, 85%, 55%)",
-        priceFormat: { type: "volume" },
-        priceScaleId: "",
-      });
-      volumeSeries.priceScale().applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 },
-      });
-      volumeSeries.setData(volumeData);
-    }
-
-    // Add RSI
-    if (rsiData) {
-      const rsiSeries = chart.addSeries(LineSeries, {
-        color: "hsl(270, 70%, 60%)",
-        lineWidth: 2,
-        priceScaleId: "rsi",
-      });
-      rsiSeries.priceScale().applyOptions({
-        scaleMargins: { top: 0.85, bottom: 0 },
-      });
-      rsiSeries.setData(rsiData.filter((d) => !isNaN(d.value)));
-    }
-
-    // Add MACD
-    if (macdData) {
-      const macdSeries = chart.addSeries(LineSeries, {
-        color: "hsl(200, 70%, 60%)",
-        lineWidth: 2,
-        priceScaleId: "macd",
-      });
-      macdSeries.priceScale().applyOptions({
-        scaleMargins: { top: 0.9, bottom: 0 },
-      });
-      macdSeries.setData(macdData.macd.filter((d) => !isNaN(d.value)));
-
-      const signalSeries = chart.addSeries(LineSeries, {
-        color: "hsl(30, 70%, 60%)",
-        lineWidth: 2,
-        priceScaleId: "macd",
-      });
-      signalSeries.setData(macdData.signal.filter((d) => !isNaN(d.value)));
-
-      const histogramSeries = chart.addSeries(HistogramSeries, {
-        priceScaleId: "macd",
-      });
-      histogramSeries.setData(macdData.histogram.filter((d) => !isNaN(d.value)));
-    }
-
-    chart.timeScale().fitContent();
-
-    // Mouse event handlers for drawing - use refs to avoid stale closures
+    // Mouse event handlers for drawing
     chart.subscribeClick((param) => {
       if (!activeDrawingToolRef.current) {
         onDrawingSelectRef.current?.(null);
@@ -569,8 +462,193 @@ export const ChartWithDrawings = ({
     return () => {
       window.removeEventListener("resize", handleResize);
       chart.remove();
+      isInitializedRef.current = false;
     };
-  }, [data, volumeData, chartType, showVolume, rsiData, macdData, bollingerData, getChartPoint, drawOnCanvas, fullscreen]);
+  }, [getChartPoint, drawOnCanvas, getResponsiveHeight]); // No data dependencies!
+
+  // Handle chart type changes - need to recreate series
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !isInitializedRef.current) return;
+    
+    if (chartTypeRef.current !== chartType) {
+      // Remove old series
+      if (mainSeriesRef.current) {
+        chart.removeSeries(mainSeriesRef.current);
+      }
+      
+      // Create new series
+      if (chartType === "candlestick") {
+        const candlestickSeries = chart.addSeries(CandlestickSeries, {
+          upColor: "#22c55e",
+          downColor: "#ef4444",
+          borderVisible: true,
+          borderUpColor: "#16a34a",
+          borderDownColor: "#dc2626",
+          wickUpColor: "#22c55e",
+          wickDownColor: "#ef4444",
+        });
+        candlestickSeries.priceScale().applyOptions({
+          scaleMargins: { top: 0.05, bottom: 0.15 },
+        });
+        mainSeriesRef.current = candlestickSeries;
+        if (data.length > 0) {
+          candlestickSeries.setData(data);
+        }
+      } else {
+        const lineSeries = chart.addSeries(LineSeries, {
+          color: "hsl(180, 85%, 55%)",
+          lineWidth: 2,
+          crosshairMarkerVisible: true,
+          crosshairMarkerRadius: 4,
+        });
+        mainSeriesRef.current = lineSeries;
+        if (data.length > 0) {
+          lineSeries.setData(data.map((d) => ({ time: d.time, value: d.close })));
+        }
+      }
+      chartTypeRef.current = chartType;
+    }
+  }, [chartType, data]);
+
+  // Update main series data without recreating chart - SMOOTH UPDATES
+  useEffect(() => {
+    if (!mainSeriesRef.current || data.length === 0) return;
+    
+    if (chartType === "candlestick") {
+      mainSeriesRef.current.setData(data);
+    } else {
+      mainSeriesRef.current.setData(data.map((d) => ({ time: d.time, value: d.close })));
+    }
+  }, [data, chartType]);
+
+  // Update volume data
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !isInitializedRef.current) return;
+
+    if (showVolume && volumeData && volumeData.length > 0) {
+      if (!volumeSeriesRef.current) {
+        const volumeSeries = chart.addSeries(HistogramSeries, {
+          color: "hsl(180, 85%, 55%)",
+          priceFormat: { type: "volume" },
+          priceScaleId: "",
+        });
+        volumeSeries.priceScale().applyOptions({
+          scaleMargins: { top: 0.8, bottom: 0 },
+        });
+        volumeSeriesRef.current = volumeSeries;
+      }
+      volumeSeriesRef.current.setData(volumeData);
+    } else if (volumeSeriesRef.current) {
+      chart.removeSeries(volumeSeriesRef.current);
+      volumeSeriesRef.current = null;
+    }
+  }, [showVolume, volumeData]);
+
+  // Update indicator data (Bollinger, RSI, MACD)
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !isInitializedRef.current) return;
+
+    // Bollinger Bands
+    if (bollingerData) {
+      if (!indicatorSeriesRef.current.has("bollinger-upper")) {
+        const upperBand = chart.addSeries(LineSeries, {
+          color: "hsl(180, 85%, 55%)",
+          lineWidth: 1,
+          lineStyle: 2,
+        });
+        indicatorSeriesRef.current.set("bollinger-upper", upperBand);
+        
+        const middleBand = chart.addSeries(LineSeries, {
+          color: "hsl(180, 85%, 55%)",
+          lineWidth: 1,
+        });
+        indicatorSeriesRef.current.set("bollinger-middle", middleBand);
+        
+        const lowerBand = chart.addSeries(LineSeries, {
+          color: "hsl(180, 85%, 55%)",
+          lineWidth: 1,
+          lineStyle: 2,
+        });
+        indicatorSeriesRef.current.set("bollinger-lower", lowerBand);
+      }
+      
+      indicatorSeriesRef.current.get("bollinger-upper")?.setData(bollingerData.upper.filter((d) => !isNaN(d.value)));
+      indicatorSeriesRef.current.get("bollinger-middle")?.setData(bollingerData.middle.filter((d) => !isNaN(d.value)));
+      indicatorSeriesRef.current.get("bollinger-lower")?.setData(bollingerData.lower.filter((d) => !isNaN(d.value)));
+    } else {
+      ["bollinger-upper", "bollinger-middle", "bollinger-lower"].forEach((key) => {
+        const series = indicatorSeriesRef.current.get(key);
+        if (series) {
+          chart.removeSeries(series);
+          indicatorSeriesRef.current.delete(key);
+        }
+      });
+    }
+
+    // RSI
+    if (rsiData) {
+      if (!indicatorSeriesRef.current.has("rsi")) {
+        const rsiSeries = chart.addSeries(LineSeries, {
+          color: "hsl(270, 70%, 60%)",
+          lineWidth: 2,
+          priceScaleId: "rsi",
+        });
+        rsiSeries.priceScale().applyOptions({
+          scaleMargins: { top: 0.85, bottom: 0 },
+        });
+        indicatorSeriesRef.current.set("rsi", rsiSeries);
+      }
+      indicatorSeriesRef.current.get("rsi")?.setData(rsiData.filter((d) => !isNaN(d.value)));
+    } else {
+      const series = indicatorSeriesRef.current.get("rsi");
+      if (series) {
+        chart.removeSeries(series);
+        indicatorSeriesRef.current.delete("rsi");
+      }
+    }
+
+    // MACD
+    if (macdData) {
+      if (!indicatorSeriesRef.current.has("macd")) {
+        const macdSeries = chart.addSeries(LineSeries, {
+          color: "hsl(200, 70%, 60%)",
+          lineWidth: 2,
+          priceScaleId: "macd",
+        });
+        macdSeries.priceScale().applyOptions({
+          scaleMargins: { top: 0.9, bottom: 0 },
+        });
+        indicatorSeriesRef.current.set("macd", macdSeries);
+
+        const signalSeries = chart.addSeries(LineSeries, {
+          color: "hsl(30, 70%, 60%)",
+          lineWidth: 2,
+          priceScaleId: "macd",
+        });
+        indicatorSeriesRef.current.set("macd-signal", signalSeries);
+
+        const histogramSeries = chart.addSeries(HistogramSeries, {
+          priceScaleId: "macd",
+        });
+        indicatorSeriesRef.current.set("macd-histogram", histogramSeries);
+      }
+      
+      indicatorSeriesRef.current.get("macd")?.setData(macdData.macd.filter((d) => !isNaN(d.value)));
+      indicatorSeriesRef.current.get("macd-signal")?.setData(macdData.signal.filter((d) => !isNaN(d.value)));
+      indicatorSeriesRef.current.get("macd-histogram")?.setData(macdData.histogram.filter((d) => !isNaN(d.value)));
+    } else {
+      ["macd", "macd-signal", "macd-histogram"].forEach((key) => {
+        const series = indicatorSeriesRef.current.get(key);
+        if (series) {
+          chart.removeSeries(series);
+          indicatorSeriesRef.current.delete(key);
+        }
+      });
+    }
+  }, [bollingerData, rsiData, macdData]);
 
   // Redraw canvas when drawings change
   useEffect(() => {
