@@ -28,6 +28,7 @@ interface UseMarketDataResult {
   quote: MarketQuote | null;
   livePrice: LivePrice | null;
   isLoading: boolean;
+  isRefreshing: boolean;
   isConnected: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -42,7 +43,9 @@ export const useMarketData = (
   const [volumeData, setVolumeData] = useState<{ time: Time; value: number; color: string }[]>([]);
   const [quote, setQuote] = useState<MarketQuote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
   
   // WebSocket for real-time price updates
   const { livePrice, isConnected } = useWebSocketPrice(symbol, useLiveData);
@@ -82,8 +85,13 @@ export const useMarketData = (
     } : null);
   }, [livePrice, chartData.length]);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (isBackgroundRefresh = false) => {
+    // Only show full loading on initial load, otherwise show subtle refresh
+    if (!hasLoadedOnce.current) {
+      setIsLoading(true);
+    } else if (isBackgroundRefresh) {
+      setIsRefreshing(true);
+    }
     setError(null);
 
     if (!useLiveData) {
@@ -104,7 +112,9 @@ export const useMarketData = (
       const volume = generateVolumeData(data);
       setChartData(data);
       setVolumeData(volume);
+      hasLoadedOnce.current = true;
       setIsLoading(false);
+      setIsRefreshing(false);
       return;
     }
 
@@ -165,9 +175,16 @@ export const useMarketData = (
       setChartData(data);
       setVolumeData(volume);
     } finally {
+      hasLoadedOnce.current = true;
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [symbol, timeframe, useLiveData]);
+
+  // Reset hasLoadedOnce when symbol or timeframe changes
+  useEffect(() => {
+    hasLoadedOnce.current = false;
+  }, [symbol, timeframe]);
 
   useEffect(() => {
     fetchData();
@@ -180,7 +197,7 @@ export const useMarketData = (
     const refreshInterval = REFRESH_INTERVALS[timeframe] || 60000;
     
     const intervalId = setInterval(() => {
-      fetchData();
+      fetchData(true); // Background refresh
     }, refreshInterval);
 
     return () => clearInterval(intervalId);
@@ -206,8 +223,9 @@ export const useMarketData = (
     quote,
     livePrice,
     isLoading,
+    isRefreshing,
     isConnected,
     error,
-    refetch: fetchData,
+    refetch: () => fetchData(false),
   };
 };
