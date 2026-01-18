@@ -40,6 +40,8 @@ interface ChartWithDrawingsProps {
   onDrawingSelect?: (id: string | null) => void;
   selectedDrawingId?: string | null;
   fullscreen?: boolean;
+  // Live price pulse
+  isLivePriceUpdating?: boolean;
 }
 
 export const ChartWithDrawings = ({
@@ -60,15 +62,19 @@ export const ChartWithDrawings = ({
   onDrawingSelect,
   selectedDrawingId,
   fullscreen = false,
+  isLivePriceUpdating = false,
 }: ChartWithDrawingsProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pulseCanvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const indicatorSeriesRef = useRef<Map<string, ISeriesApi<any>>>(new Map());
   const chartTypeRef = useRef(chartType);
   const isInitializedRef = useRef(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Use refs to avoid stale closures in event handlers
   const activeDrawingToolRef = useRef(activeDrawingTool);
@@ -328,6 +334,95 @@ export const ChartWithDrawings = ({
     return 700;
   }, [fullscreen]);
 
+  // Pulse effect when live price updates
+  useEffect(() => {
+    if (isLivePriceUpdating && data.length > 0) {
+      setIsPulsing(true);
+      
+      // Clear any existing timeout
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+      }
+      
+      // Reset pulse after animation
+      pulseTimeoutRef.current = setTimeout(() => {
+        setIsPulsing(false);
+      }, 600);
+    }
+    
+    return () => {
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+      }
+    };
+  }, [isLivePriceUpdating, data]);
+
+  // Draw pulse effect on last candle
+  const drawPulseEffect = useCallback(() => {
+    const canvas = pulseCanvasRef.current;
+    const chart = chartRef.current;
+    const series = mainSeriesRef.current;
+    
+    if (!canvas || !chart || !series || data.length === 0) return;
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (!isPulsing) return;
+    
+    const lastCandle = data[data.length - 1];
+    const timeScale = chart.timeScale();
+    const x = timeScale.timeToCoordinate(lastCandle.time);
+    const yHigh = series.priceToCoordinate(lastCandle.high);
+    const yLow = series.priceToCoordinate(lastCandle.low);
+    
+    if (x === null || yHigh === null || yLow === null) return;
+    
+    const isGreen = lastCandle.close >= lastCandle.open;
+    const color = isGreen ? "34, 197, 94" : "239, 68, 68"; // green or red RGB
+    
+    // Draw pulsing glow around the last candle
+    const centerY = (yHigh + yLow) / 2;
+    const barWidth = 16; // Approximate bar width
+    
+    // Multiple expanding rings for pulse effect
+    for (let i = 0; i < 3; i++) {
+      const delay = i * 0.15;
+      const progress = Math.max(0, Math.min(1, 1 - delay));
+      const radius = 20 + (i * 15);
+      const alpha = 0.4 * progress;
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(x, centerY, radius, (yLow - yHigh) / 2 + radius * 0.5, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${color}, ${alpha})`;
+      ctx.lineWidth = 3 - i;
+      ctx.stroke();
+      ctx.restore();
+    }
+    
+    // Inner glow
+    const gradient = ctx.createRadialGradient(x, centerY, 0, x, centerY, 40);
+    gradient.addColorStop(0, `rgba(${color}, 0.3)`);
+    gradient.addColorStop(0.5, `rgba(${color}, 0.15)`);
+    gradient.addColorStop(1, `rgba(${color}, 0)`);
+    
+    ctx.save();
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.ellipse(x, centerY, 40, Math.abs(yLow - yHigh) / 2 + 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }, [data, isPulsing]);
+
+  // Redraw pulse effect when needed
+  useEffect(() => {
+    drawPulseEffect();
+  }, [drawPulseEffect]);
+
   // Initialize chart only once
   useEffect(() => {
     if (!chartContainerRef.current || isInitializedRef.current) return;
@@ -447,16 +542,29 @@ export const ChartWithDrawings = ({
         chartRef.current.applyOptions({ width, height });
         canvasRef.current.width = width;
         canvasRef.current.height = height;
+        if (pulseCanvasRef.current) {
+          pulseCanvasRef.current.width = width;
+          pulseCanvasRef.current.height = height;
+        }
         drawOnCanvas();
+        drawPulseEffect();
       }
     };
 
     window.addEventListener("resize", handleResize);
 
-    // Setup canvas overlay
-    if (canvasRef.current && chartContainerRef.current) {
-      canvasRef.current.width = chartContainerRef.current.clientWidth;
-      canvasRef.current.height = getResponsiveHeight();
+    // Setup canvas overlays
+    if (chartContainerRef.current) {
+      const width = chartContainerRef.current.clientWidth;
+      const height = getResponsiveHeight();
+      if (canvasRef.current) {
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+      }
+      if (pulseCanvasRef.current) {
+        pulseCanvasRef.current.width = width;
+        pulseCanvasRef.current.height = height;
+      }
     }
 
     return () => {
@@ -674,9 +782,16 @@ export const ChartWithDrawings = ({
   return (
     <div className="relative w-full">
       <div ref={chartContainerRef} className="w-full" />
+      {/* Drawing overlay canvas */}
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 pointer-events-none"
+        style={{ width: "100%", height: "100%" }}
+      />
+      {/* Pulse effect canvas - separate layer for animation */}
+      <canvas
+        ref={pulseCanvasRef}
+        className={`absolute top-0 left-0 pointer-events-none transition-opacity duration-300 ${isPulsing ? 'opacity-100' : 'opacity-0'}`}
         style={{ width: "100%", height: "100%" }}
       />
       {activeDrawingTool && (

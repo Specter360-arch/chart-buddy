@@ -46,6 +46,7 @@ interface FullscreenChartProps {
   onSelectTool: (tool: DrawingType | null) => void;
   onClearAll: () => void;
   onClose: () => void;
+  isLivePriceUpdating?: boolean;
 }
 
 export const FullscreenChart = ({
@@ -72,6 +73,7 @@ export const FullscreenChart = ({
   onSelectTool,
   onClearAll,
   onClose,
+  isLivePriceUpdating = false,
 }: FullscreenChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -266,6 +268,7 @@ export const FullscreenChart = ({
           onDrawingSelect={onDrawingSelect}
           selectedDrawingId={selectedDrawingId}
           fullscreen
+          isLivePriceUpdating={isLivePriceUpdating}
         />
       </div>
 
