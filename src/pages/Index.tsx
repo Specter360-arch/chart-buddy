@@ -38,7 +38,7 @@ const Index = () => {
   });
 
   // Fetch market data
-  const { chartData, volumeData, quote, livePrice, isLoading, isConnected, error, refetch } = useMarketData(
+  const { chartData, volumeData, quote, livePrice, isLoading, isRefreshing, isConnected, error, refetch } = useMarketData(
     selectedSymbol,
     selectedTimeframe,
     useLiveData
@@ -308,6 +308,15 @@ const Index = () => {
                 </div>
 
                 <div className="bg-card rounded-xl border border-border overflow-hidden shadow-lg relative">
+                  {/* Subtle background refresh indicator - top right corner */}
+                  {isRefreshing && !isLoading && (
+                    <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full border border-border/50 shadow-sm">
+                      <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground font-medium">Syncing</span>
+                    </div>
+                  )}
+                  
+                  {/* Full loading overlay only on initial load */}
                   {isLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
                       <RefreshCw className="h-8 w-8 animate-spin text-primary" />
