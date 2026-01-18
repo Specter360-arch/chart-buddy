@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Header } from "@/components/Header";
 import { ChartWithDrawings } from "@/components/ChartWithDrawings";
 import { DrawingToolbar } from "@/components/DrawingToolbar";
@@ -43,6 +43,24 @@ const Index = () => {
     selectedTimeframe,
     useLiveData
   );
+
+  // Track live price updates for pulse animation
+  const [isLivePriceUpdating, setIsLivePriceUpdating] = useState(false);
+  const lastLivePriceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (livePrice && livePrice.price !== lastLivePriceRef.current) {
+      lastLivePriceRef.current = livePrice.price;
+      setIsLivePriceUpdating(true);
+      
+      // Reset after a short delay
+      const timeout = setTimeout(() => {
+        setIsLivePriceUpdating(false);
+      }, 100);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [livePrice]);
 
   // Drawing tools
   const {
@@ -350,6 +368,7 @@ const Index = () => {
                       onDrawingEnd={finishDrawing}
                       onDrawingSelect={setSelectedDrawingId}
                       selectedDrawingId={selectedDrawingId}
+                      isLivePriceUpdating={isLivePriceUpdating}
                     />
                   )}
                 </div>
@@ -384,6 +403,7 @@ const Index = () => {
             onSelectTool={selectTool}
             onClearAll={clearAllDrawings}
             onClose={() => setIsFullscreen(false)}
+            isLivePriceUpdating={isLivePriceUpdating}
           />
         )}
       </SidebarProvider>
