@@ -6,12 +6,10 @@ import {
   X,
   Maximize2,
   Minimize2,
-  RotateCcw,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import { CandlestickData, Time } from "lightweight-charts";
 import { Drawing, DrawingType, DrawingPoint } from "@/hooks/useChartDrawings";
+import { PatternSignal } from "@/stores/patternStore";
 import { cn } from "@/lib/utils";
 
 interface FullscreenChartProps {
@@ -47,6 +45,10 @@ interface FullscreenChartProps {
   onClearAll: () => void;
   onClose: () => void;
   isLivePriceUpdating?: boolean;
+  // Pattern detection
+  patterns?: PatternSignal[];
+  onPatternClick?: (pattern: PatternSignal) => void;
+  selectedPatternId?: string | null;
 }
 
 export const FullscreenChart = ({
@@ -74,6 +76,9 @@ export const FullscreenChart = ({
   onClearAll,
   onClose,
   isLivePriceUpdating = false,
+  patterns = [],
+  onPatternClick,
+  selectedPatternId,
 }: FullscreenChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -269,6 +274,9 @@ export const FullscreenChart = ({
           selectedDrawingId={selectedDrawingId}
           fullscreen
           isLivePriceUpdating={isLivePriceUpdating}
+          patterns={patterns}
+          onPatternClick={onPatternClick}
+          selectedPatternId={selectedPatternId}
         />
       </div>
 

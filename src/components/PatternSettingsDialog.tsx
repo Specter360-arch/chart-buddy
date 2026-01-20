@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePatternStore, PatternConfig } from '@/stores/patternStore';
 import {
   Dialog,
@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,11 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-
-interface PatternSettingsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+import { Settings } from 'lucide-react';
 
 const PATTERN_GROUPS = {
   'Single Candle': [
@@ -46,16 +43,21 @@ const PATTERN_GROUPS = {
   ],
 };
 
-export const PatternSettingsDialog = ({
-  open,
-  onOpenChange,
-}: PatternSettingsDialogProps) => {
+export const PatternSettingsDialog = () => {
+  const [open, setOpen] = useState(false);
   const { config, setConfig, isEnabled, setEnabled } = usePatternStore();
   const [localConfig, setLocalConfig] = useState<PatternConfig>(config);
 
+  // Sync local config when dialog opens
+  useEffect(() => {
+    if (open) {
+      setLocalConfig(config);
+    }
+  }, [open, config]);
+
   const handleSave = () => {
     setConfig(localConfig);
-    onOpenChange(false);
+    setOpen(false);
   };
 
   const handleReset = () => {
@@ -92,7 +94,13 @@ export const PatternSettingsDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 gap-2">
+          <Settings className="h-4 w-4" />
+          <span className="text-xs hidden sm:inline">Settings</span>
+        </Button>
+      </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Pattern Detection Settings</DialogTitle>
@@ -152,7 +160,7 @@ export const PatternSettingsDialog = ({
                       setLocalConfig((prev) => ({ ...prev, showBullish: !!checked }))
                     }
                   />
-                  <span className="text-xs text-green-500">Bullish</span>
+                  <span className="text-xs text-success">Bullish</span>
                 </label>
                 <label className="flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-muted/50">
                   <Checkbox
@@ -161,7 +169,7 @@ export const PatternSettingsDialog = ({
                       setLocalConfig((prev) => ({ ...prev, showBearish: !!checked }))
                     }
                   />
-                  <span className="text-xs text-red-500">Bearish</span>
+                  <span className="text-xs text-destructive">Bearish</span>
                 </label>
                 <label className="flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-muted/50">
                   <Checkbox
@@ -170,7 +178,7 @@ export const PatternSettingsDialog = ({
                       setLocalConfig((prev) => ({ ...prev, showNeutral: !!checked }))
                     }
                   />
-                  <span className="text-xs text-yellow-500">Neutral</span>
+                  <span className="text-xs text-warning">Neutral</span>
                 </label>
               </div>
             </div>
@@ -252,12 +260,12 @@ export const PatternSettingsDialog = ({
                         <span
                           className={`ml-auto w-2 h-2 rounded-full ${
                             pattern.type === 'bullish'
-                              ? 'bg-green-500'
+                              ? 'bg-success'
                               : pattern.type === 'bearish'
-                              ? 'bg-red-500'
+                              ? 'bg-destructive'
                               : pattern.type === 'both'
-                              ? 'bg-gradient-to-r from-green-500 to-red-500'
-                              : 'bg-yellow-500'
+                              ? 'bg-gradient-to-r from-success to-destructive'
+                              : 'bg-warning'
                           }`}
                         />
                       </label>
@@ -274,7 +282,7 @@ export const PatternSettingsDialog = ({
             Reset to Defaults
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button size="sm" onClick={handleSave}>
