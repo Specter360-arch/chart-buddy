@@ -185,15 +185,15 @@ export const PatternMarkers = ({
 
     // Subscribe to chart updates
     const handleResize = () => updateMarkerPositions();
-    const unsubscribeTimeScale = chart.timeScale().subscribeVisibleTimeRangeChange(updateMarkerPositions);
-    const unsubscribeCrosshair = chart.subscribeCrosshairMove(updateMarkerPositions);
+    chart.timeScale().subscribeVisibleTimeRangeChange(updateMarkerPositions);
+    chart.subscribeCrosshairMove(updateMarkerPositions);
 
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      unsubscribeTimeScale();
-      unsubscribeCrosshair();
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(updateMarkerPositions);
+      chart.unsubscribeCrosshairMove(updateMarkerPositions);
     };
   }, [chart, series, patterns, createMarkerElement, updateMarkerPositions]);
 
