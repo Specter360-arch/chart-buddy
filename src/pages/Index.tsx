@@ -11,6 +11,7 @@ import { FullscreenChart } from "@/components/FullscreenChart";
 import { LivePriceIndicator } from "@/components/LivePriceIndicator";
 import { PatternFeedPanel } from "@/components/PatternFeedPanel";
 import { PatternSettingsDialog } from "@/components/PatternSettingsDialog";
+import { PatternAnalyticsPanel } from "@/components/PatternAnalyticsPanel";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
@@ -402,9 +403,12 @@ const Index = () => {
                   )}
                 </div>
 
-                {/* Pattern Feed Panel */}
+                {/* Pattern Panels */}
                 {patternDetectionEnabled && (
-                  <PatternFeedPanel symbol={selectedSymbol} />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <PatternFeedPanel symbol={selectedSymbol} />
+                    <PatternAnalyticsPanel symbol={selectedSymbol} />
+                  </div>
                 )}
               </main>
             )}
