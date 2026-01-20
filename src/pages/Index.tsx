@@ -9,12 +9,16 @@ import { WatchlistSidebar } from "@/components/WatchlistSidebar";
 import { MultiChartLayout } from "@/components/MultiChartLayout";
 import { FullscreenChart } from "@/components/FullscreenChart";
 import { LivePriceIndicator } from "@/components/LivePriceIndicator";
+import { PatternFeedPanel } from "@/components/PatternFeedPanel";
+import { PatternSettingsDialog } from "@/components/PatternSettingsDialog";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { calculateRSI, calculateMACD, calculateBollingerBands } from "@/utils/technicalIndicators";
 import { CandlestickData, Time } from "lightweight-charts";
-import { Grid2X2, Maximize2, RefreshCw, Wifi, WifiOff, Radio } from "lucide-react";
+import { Grid2X2, Maximize2, RefreshCw, Wifi, WifiOff, Radio, Activity } from "lucide-react";
 import { useChartDrawings } from "@/hooks/useChartDrawings";
+import { usePatternDetection } from "@/hooks/usePatternDetection";
+import { usePatternStore } from "@/stores/patternStore";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMarketData } from "@/hooks/useMarketData";
 import { ALL_SYMBOLS, DEFAULT_SYMBOL } from "@/services/marketData";
@@ -61,6 +65,15 @@ const Index = () => {
       return () => clearTimeout(timeout);
     }
   }, [livePrice]);
+
+  // Pattern detection
+  const { getFilteredPatterns, selectPattern, selectedPatternId: storeSelectedPatternId, isEnabled: patternDetectionEnabled, setEnabled: setPatternDetectionEnabled } = usePatternStore();
+  
+  // Initialize pattern detection
+  usePatternDetection({ symbol: selectedSymbol, timeframe: selectedTimeframe, chartData });
+  
+  // Get filtered patterns for current symbol
+  const patterns = useMemo(() => getFilteredPatterns(selectedSymbol), [getFilteredPatterns, selectedSymbol]);
 
   // Drawing tools
   const {
@@ -305,6 +318,19 @@ const Index = () => {
                       indicatorParameters={indicatorParameters}
                       onParametersChange={setIndicatorParameters}
                     />
+
+                    {/* Pattern Detection Toggle */}
+                    <Button
+                      variant={patternDetectionEnabled ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPatternDetectionEnabled(!patternDetectionEnabled)}
+                      className="h-8 gap-2"
+                    >
+                      <Activity className={`h-4 w-4 ${patternDetectionEnabled ? "text-primary-foreground" : ""}`} />
+                      <span className="text-xs hidden sm:inline">Patterns</span>
+                    </Button>
+
+                    <PatternSettingsDialog />
                   </div>
                 </div>
 
@@ -369,9 +395,17 @@ const Index = () => {
                       onDrawingSelect={setSelectedDrawingId}
                       selectedDrawingId={selectedDrawingId}
                       isLivePriceUpdating={isLivePriceUpdating}
+                      patterns={patternDetectionEnabled ? patterns : []}
+                      onPatternClick={(pattern) => selectPattern(pattern.id)}
+                      selectedPatternId={storeSelectedPatternId}
                     />
                   )}
                 </div>
+
+                {/* Pattern Feed Panel */}
+                {patternDetectionEnabled && (
+                  <PatternFeedPanel symbol={selectedSymbol} />
+                )}
               </main>
             )}
           </div>
@@ -404,6 +438,9 @@ const Index = () => {
             onClearAll={clearAllDrawings}
             onClose={() => setIsFullscreen(false)}
             isLivePriceUpdating={isLivePriceUpdating}
+            patterns={patternDetectionEnabled ? patterns : []}
+            onPatternClick={(pattern) => selectPattern(pattern.id)}
+            selectedPatternId={storeSelectedPatternId}
           />
         )}
       </SidebarProvider>

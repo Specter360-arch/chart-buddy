@@ -12,6 +12,8 @@ import {
   CrosshairMode,
 } from "lightweight-charts";
 import { Drawing, DrawingPoint, DrawingType } from "@/hooks/useChartDrawings";
+import { PatternMarkers } from "@/components/PatternMarkers";
+import { PatternSignal } from "@/stores/patternStore";
 
 interface ChartWithDrawingsProps {
   data: CandlestickData<Time>[];
@@ -42,6 +44,10 @@ interface ChartWithDrawingsProps {
   fullscreen?: boolean;
   // Live price pulse
   isLivePriceUpdating?: boolean;
+  // Pattern detection
+  patterns?: PatternSignal[];
+  onPatternClick?: (pattern: PatternSignal) => void;
+  selectedPatternId?: string | null;
 }
 
 export const ChartWithDrawings = ({
@@ -63,6 +69,9 @@ export const ChartWithDrawings = ({
   selectedDrawingId,
   fullscreen = false,
   isLivePriceUpdating = false,
+  patterns = [],
+  onPatternClick,
+  selectedPatternId,
 }: ChartWithDrawingsProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -800,6 +809,15 @@ export const ChartWithDrawings = ({
           Drawing: {activeDrawingTool} • Click to place first point, click again to finish
         </div>
       )}
+      
+      {/* Pattern Markers Overlay */}
+      <PatternMarkers
+        chart={chartRef.current}
+        series={mainSeriesRef.current}
+        patterns={patterns}
+        selectedPatternId={selectedPatternId}
+        onPatternClick={onPatternClick}
+      />
     </div>
   );
 };

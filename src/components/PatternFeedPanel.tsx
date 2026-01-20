@@ -19,23 +19,20 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface PatternFeedPanelProps {
   symbol: string;
-  patterns: PatternSignal[];
-  selectedPatternId?: string | null;
-  onPatternSelect?: (pattern: PatternSignal | null) => void;
-  onOpenSettings?: () => void;
 }
 
 export const PatternFeedPanel = ({
   symbol,
-  patterns,
-  selectedPatternId,
-  onPatternSelect,
-  onOpenSettings,
 }: PatternFeedPanelProps) => {
   const [expandedPatternId, setExpandedPatternId] = useState<string | null>(null);
-  const { clearPatterns, getAnalytics, isPanelOpen, setPanelOpen } = usePatternStore();
+  const { clearPatterns, getAnalytics, getFilteredPatterns, isPanelOpen, setPanelOpen, selectPattern, selectedPatternId } = usePatternStore();
 
+  const patterns = getFilteredPatterns(symbol);
   const analytics = getAnalytics(symbol);
+
+  const handlePatternSelect = (pattern: PatternSignal | null) => {
+    selectPattern(pattern?.id || null);
+  };
 
   const getPatternIcon = (type: PatternSignal['patternType']) => {
     switch (type) {
@@ -106,17 +103,6 @@ export const PatternFeedPanel = ({
                 }
               </span>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenSettings?.();
-                  }}
-                >
-                  <Settings className="h-3.5 w-3.5" />
-                </Button>
                 {patterns.length > 0 && (
                   <Button
                     variant="ghost"
@@ -125,7 +111,7 @@ export const PatternFeedPanel = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       clearPatterns(symbol);
-                      onPatternSelect?.(null);
+                      handlePatternSelect(null);
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -159,7 +145,7 @@ export const PatternFeedPanel = ({
                             ? "border-primary bg-primary/10"
                             : "border-transparent bg-muted/30 hover:bg-muted/50"
                         )}
-                        onClick={() => onPatternSelect?.(
+                        onClick={() => handlePatternSelect(
                           selectedPatternId === pattern.id ? null : pattern
                         )}
                       >
