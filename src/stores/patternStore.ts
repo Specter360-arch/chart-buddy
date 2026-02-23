@@ -2,12 +2,17 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Time } from 'lightweight-charts';
 
-// Pattern signal from Candlestick.js detector
+// Pattern signal from Candlestick.js v3.9.0 detector
 export interface PatternSignal {
   id: string;
   patternName: string;
   patternType: 'bullish' | 'bearish' | 'neutral';
   confidence: number;
+  aggregatedConfidence?: number | null;
+  statisticalConfidence?: number | null;
+  significance?: number | null;
+  tradeRelevance?: string;
+  reliability?: string;
   timestamp: Time;
   price: number;
   high: number;
@@ -15,7 +20,20 @@ export interface PatternSignal {
   symbol: string;
   timeframe: string;
   description?: string;
-  detectedAt: number; // Unix timestamp
+  detectedAt: number;
+  meta?: {
+    backtestedStats?: {
+      winRate: number;
+      avgReturn: number;
+      maxDrawdown: number;
+      sampleSize: number;
+      sharpeRatio: number;
+      lastUpdated: string;
+    } | null;
+    patternType?: string;
+    contradictionPenalty?: number;
+    contradictoryPatterns?: string[];
+  };
 }
 
 // Configuration for pattern detection
@@ -42,22 +60,14 @@ export interface PatternAnalytics {
 }
 
 interface PatternStore {
-  // Pattern history (last 100 per symbol)
   patterns: Map<string, PatternSignal[]>;
-  
-  // Configuration
   config: PatternConfig;
-  
-  // Active symbol for pattern detection
   activeSymbol: string | null;
   activeTimeframe: string | null;
-  
-  // UI State
   isPanelOpen: boolean;
   selectedPatternId: string | null;
   isEnabled: boolean;
   
-  // Actions
   addPattern: (pattern: PatternSignal) => void;
   clearPatterns: (symbol?: string) => void;
   setConfig: (config: Partial<PatternConfig>) => void;
@@ -66,7 +76,6 @@ interface PatternStore {
   selectPattern: (id: string | null) => void;
   setEnabled: (enabled: boolean) => void;
   
-  // Computed
   getPatterns: (symbol: string) => PatternSignal[];
   getFilteredPatterns: (symbol: string) => PatternSignal[];
   getAnalytics: (symbol: string) => PatternAnalytics;
@@ -75,13 +84,14 @@ interface PatternStore {
 const DEFAULT_CONFIG: PatternConfig = {
   minConfidence: 0.6,
   enabledPatterns: [
-    'doji', 'hammer', 'inverted_hammer', 'hanging_man',
+    'doji', 'hammer', 'shooting_star', 'inverted_hammer', 'hanging_man',
     'bullish_engulfing', 'bearish_engulfing',
     'bullish_harami', 'bearish_harami',
     'morning_star', 'evening_star',
     'three_white_soldiers', 'three_black_crows',
     'piercing_line', 'dark_cloud_cover',
-    'spinning_top', 'marubozu'
+    'spinning_top', 'marubozu',
+    'engulfing', 'harami',
   ],
   showBullish: true,
   showBearish: true,
@@ -107,7 +117,6 @@ export const usePatternStore = create<PatternStore>()(
           const newPatterns = new Map(state.patterns);
           const symbolPatterns = newPatterns.get(pattern.symbol) || [];
           
-          // Check for duplicates (same pattern within 1 minute)
           const isDuplicate = symbolPatterns.some(
             (p) =>
               p.patternName === pattern.patternName &&

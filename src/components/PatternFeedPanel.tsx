@@ -11,7 +11,7 @@ import {
   TrendingDown, 
   Minus,
   Trash2,
-  Settings,
+  
   Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -183,6 +183,33 @@ export const PatternFeedPanel = ({
                                 {pattern.description}
                               </p>
                             )}
+                            
+                            {/* v3.9.0 Insights */}
+                            {(pattern.tradeRelevance || pattern.reliability) && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {pattern.tradeRelevance && pattern.tradeRelevance !== 'unknown' && (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 capitalize border-primary/30 text-primary">
+                                    {pattern.tradeRelevance}
+                                  </Badge>
+                                )}
+                                {pattern.reliability && (
+                                  <Badge variant="outline" className={cn(
+                                    "text-[9px] px-1 py-0 capitalize",
+                                    pattern.reliability === 'high' ? 'border-green-500/30 text-green-400' :
+                                    pattern.reliability === 'medium' ? 'border-yellow-500/30 text-yellow-400' :
+                                    'border-red-500/30 text-red-400'
+                                  )}>
+                                    {pattern.reliability}
+                                  </Badge>
+                                )}
+                                {pattern.meta?.contradictionPenalty && pattern.meta.contradictionPenalty > 0 && (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-orange-500/30 text-orange-400">
+                                    ⚠ conflict -{(pattern.meta.contradictionPenalty * 100).toFixed(0)}%
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+
                             <div className="grid grid-cols-2 gap-2 text-[10px]">
                               <div>
                                 <span className="text-muted-foreground">Price: </span>
@@ -206,7 +233,41 @@ export const PatternFeedPanel = ({
                                 <span className="text-muted-foreground">Timeframe: </span>
                                 <span className="text-foreground">{pattern.timeframe}</span>
                               </div>
+                              {pattern.aggregatedConfidence != null && (
+                                <div>
+                                  <span className="text-muted-foreground">Agg. Conf: </span>
+                                  <span className="text-foreground font-mono">
+                                    {(pattern.aggregatedConfidence * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              )}
+                              {pattern.meta?.backtestedStats && (
+                                <div>
+                                  <span className="text-muted-foreground">Win Rate: </span>
+                                  <span className="text-foreground font-mono">
+                                    {(pattern.meta.backtestedStats.winRate * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              )}
                             </div>
+
+                            {/* Backtested stats detail */}
+                            {pattern.meta?.backtestedStats && (
+                              <div className="bg-muted/20 rounded p-1.5 grid grid-cols-3 gap-1 text-[9px]">
+                                <div className="text-center">
+                                  <div className="text-muted-foreground">Avg Return</div>
+                                  <div className="font-mono font-medium">{pattern.meta.backtestedStats.avgReturn}%</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-muted-foreground">Sharpe</div>
+                                  <div className="font-mono font-medium">{pattern.meta.backtestedStats.sharpeRatio}</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-muted-foreground">Samples</div>
+                                  <div className="font-mono font-medium">{pattern.meta.backtestedStats.sampleSize}</div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </CollapsibleContent>
                       </div>
