@@ -758,12 +758,22 @@ export class PatternLanguageManager {
     return this;
   }
 
-  /**
-   * Get active language pack
-   */
-  getActive() {
-    return this.languages[this.active] || null;
-  }
+  /**
+   * Get active language pack
+   */
+  getActive() {
+    return this.languages[this.active] || null;
+  }
+
+  /**
+   * Get a specific language pack by name
+   * FIX-BONUS: This method was referenced but never defined
+   * @param {string} name - Language pack name
+   * @returns {Object|null} Language pack or null
+   */
+  getLanguage(name) {
+    return this.languages[name] || null;
+  }
 
   /**
    * Get specific pattern from active language
