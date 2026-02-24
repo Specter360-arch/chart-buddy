@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { usePatternStore, PatternConfig } from '@/stores/patternStore';
+import { usePatternStore, PatternConfig, TradingStyle } from '@/stores/patternStore';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Settings } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Settings, Zap, TrendingUp, Target } from 'lucide-react';
 
 const PATTERN_GROUPS = {
   'Single Candle': [
@@ -70,6 +71,7 @@ export const PatternSettingsDialog = () => {
       maxPatterns: 100,
       alertOnHighConfidence: true,
       highConfidenceThreshold: 0.85,
+      tradingStyle: 'swing',
     };
     setLocalConfig(defaultConfig);
   };
@@ -120,6 +122,40 @@ export const PatternSettingsDialog = () => {
                 </p>
               </div>
               <Switch checked={isEnabled} onCheckedChange={setEnabled} />
+            </div>
+
+            <Separator />
+
+            {/* Trading Style */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Trading Style</Label>
+              <p className="text-xs text-muted-foreground">
+                Adjusts detection sensitivity via CandlestickJS presets
+              </p>
+              <ToggleGroup
+                type="single"
+                value={localConfig.tradingStyle}
+                onValueChange={(value) => {
+                  if (value) setLocalConfig((prev) => ({ ...prev, tradingStyle: value as TradingStyle }));
+                }}
+                className="grid grid-cols-3 gap-1"
+              >
+                <ToggleGroupItem value="scalping" className="flex flex-col items-center gap-1 h-auto py-2 px-1 data-[state=on]:bg-primary/15 data-[state=on]:border-primary/40">
+                  <Zap className="h-4 w-4" />
+                  <span className="text-xs font-medium">Scalping</span>
+                  <span className="text-[9px] text-muted-foreground leading-tight text-center">Fast, single-candle</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="swing" className="flex flex-col items-center gap-1 h-auto py-2 px-1 data-[state=on]:bg-primary/15 data-[state=on]:border-primary/40">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="text-xs font-medium">Swing</span>
+                  <span className="text-[9px] text-muted-foreground leading-tight text-center">Balanced, multi-candle</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="position" className="flex flex-col items-center gap-1 h-auto py-2 px-1 data-[state=on]:bg-primary/15 data-[state=on]:border-primary/40">
+                  <Target className="h-4 w-4" />
+                  <span className="text-xs font-medium">Position</span>
+                  <span className="text-[9px] text-muted-foreground leading-tight text-center">High accuracy, full analysis</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
             <Separator />

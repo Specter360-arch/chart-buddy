@@ -36,6 +36,9 @@ export interface PatternSignal {
   };
 }
 
+// Trading style presets mapping to CandlestickJS PerformancePresets
+export type TradingStyle = 'scalping' | 'swing' | 'position';
+
 // Configuration for pattern detection
 export interface PatternConfig {
   minConfidence: number;
@@ -46,6 +49,7 @@ export interface PatternConfig {
   maxPatterns: number;
   alertOnHighConfidence: boolean;
   highConfidenceThreshold: number;
+  tradingStyle: TradingStyle;
 }
 
 // Performance analytics
@@ -99,6 +103,7 @@ const DEFAULT_CONFIG: PatternConfig = {
   maxPatterns: 100,
   alertOnHighConfidence: true,
   highConfidenceThreshold: 0.85,
+  tradingStyle: 'swing',
 };
 
 export const usePatternStore = create<PatternStore>()(

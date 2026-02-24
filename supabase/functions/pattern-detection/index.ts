@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { candles, symbol, timeframe } = await req.json();
+    const { candles, symbol, timeframe, tradingStyle } = await req.json();
 
     if (!candles || !Array.isArray(candles) || candles.length < 3) {
       return new Response(
@@ -30,15 +30,22 @@ serve(async (req) => {
       );
     }
 
-    console.log(`CandlestickJS v3.9.0 — ${symbol} (${timeframe}), ${candles.length} candles`);
+    // Map trading style to PerformancePresets
+    const presetMap: Record<string, any> = {
+      scalping: PerformancePresets.realtimeTrading,
+      swing: PerformancePresets.swingTrading,
+      position: PerformancePresets.historicalAnalysis,
+    };
+    const preset = presetMap[tradingStyle] || PerformancePresets.swingTrading;
+
+    console.log(`CandlestickJS v3.9.0 — ${symbol} (${timeframe}), style: ${tradingStyle || 'swing'}, ${candles.length} candles`);
 
     const intervalMs = timeframeToIntervalMs(timeframe);
 
     const detector = new CandlestickJS({
       config: {
-        ...PerformancePresets.realtimeTrading,
+        ...preset,
         confidenceMin: 0.45,
-        maxBufferLength: 200,
         enableTimestampValidation: true,
         enableDuplicateDetection: false,
         timeframe: {
