@@ -73,6 +73,7 @@ export const usePatternDetection = ({
           candles,
           symbol,
           timeframe,
+          tradingStyle: config.tradingStyle,
         },
       });
 
